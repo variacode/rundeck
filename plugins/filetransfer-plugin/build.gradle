@@ -18,6 +18,9 @@ configurations{
 
 dependencies {
     pluginLibs group: 'commons-net', name: 'commons-net', version: '3.5'
+    pluginLibs group: 'commons-io', name: 'commons-io', version: '2.5'
+    pluginLibs group: 'com.jcraft', name: 'jsch'
+    testCompile('junit:junit:4.8.1')
 }
 
 // task to copy plugin libs to output/lib dir

@@ -1,53 +1,60 @@
 package org.rundeck.plugin.filetransfer.endpoints;
 
-import org.apache.commons.net.ftp.FTP;
-import org.apache.commons.net.ftp.FTPClient;
-import org.rundeck.plugin.filetransfer.DestEndpointHandler;
-import org.rundeck.plugin.filetransfer.SourceEndpointHandler;
+import org.rundeck.plugin.filetransfer.EndpointHandler;
+import org.rundeck.plugin.filetransfer.util.URIParser;
 
 import java.io.*;
-import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Created by Alberto Hormazabal C. on 10-06-16.
+ * Created by Alberto Hormazabal C.
  */
 public class LocalEndpoint {
 
 
-  public static SourceEndpointHandler buildSourceHandler(final URL url) throws IOException {
+  public static EndpointHandler createEndpointHandler(final URIParser url) throws IOException {
 
-    final File sourceFile = new File(url.getPath());
-    if(!sourceFile.exists() || ! sourceFile.canRead() || !sourceFile.isFile()) {
-      throw new IOException("Invalid File supplied: " + url.getPath());
-    }
+    return new EndpointHandler() {
 
-    return new SourceEndpointHandler() {
       @Override
-      public InputStream getInputStream() throws IOException {
-        return new BufferedInputStream(new FileInputStream(sourceFile));
+      public List<String> listFiles(String path) throws IOException {
+        File dir = new File(path);
+        File[] list = dir.listFiles(new FileFilter() {
+          @Override
+          public boolean accept(File pathname) {
+            return pathname.isFile();
+          }
+        });
+
+        List<String> fileList =  new ArrayList<>();
+        for(File file: list) {
+          fileList.add(file.getAbsolutePath());
+        }
+
+        return fileList;
       }
 
       @Override
-      public boolean finish() throws IOException {
+      public InputStream newTransferInputStream(String path) throws IOException {
+        return new BufferedInputStream(new FileInputStream(path));
+      }
+
+      @Override
+      public OutputStream newTransferOutputStream(String path) throws IOException {
+        return new BufferedOutputStream(new FileOutputStream(path));
+      }
+
+
+      @Override
+      public boolean finishTransferTransaction() throws IOException {
+        // nothing to do.
         return true;
       }
-    };
-
-  }
-
-  public static DestEndpointHandler buildDestHandler(final URL url) throws IOException {
-
-    final File destFile = new File(url.getPath());
-
-    return new DestEndpointHandler() {
-      @Override
-      public OutputStream getOutputStream() throws IOException {
-        return new BufferedOutputStream(new FileOutputStream(destFile));
-      }
 
       @Override
-      public boolean finish() throws IOException {
-        return true;
+      public void disconnect() throws IOException {
+        // nothing to do.
       }
     };
 

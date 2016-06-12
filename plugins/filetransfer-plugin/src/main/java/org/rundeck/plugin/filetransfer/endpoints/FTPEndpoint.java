@@ -2,19 +2,23 @@ package org.rundeck.plugin.filetransfer.endpoints;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.rundeck.plugin.filetransfer.DestEndpointHandler;
-import org.rundeck.plugin.filetransfer.SourceEndpointHandler;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPFileFilter;
+import org.rundeck.plugin.filetransfer.EndpointHandler;
+import org.rundeck.plugin.filetransfer.util.URIParser;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Created by Alberto Hormazabal C. on 10-06-16.
+ * Created by Alberto Hormazabal C.
  */
 public class FTPEndpoint {
 
+  private static final int DEFAULT_PORT = 21;
 
   /**
    * Returns a SourceEndpointHandler for FTP protocol, already connected and logged in.
@@ -25,73 +29,64 @@ public class FTPEndpoint {
    * @return The newly created source handler.
    * @throws IOException On any comm error.
    */
-  public static SourceEndpointHandler buildSourceHandler(final URL url, final String username, final String password) throws IOException {
+  public static EndpointHandler createEndpointHandler(URIParser url, final String username, final String password) throws IOException {
 
     final FTPClient ftpClient = new FTPClient();
-    ftpClient.connect(url.getHost(), url.getPort() < 0 ? url.getDefaultPort() : url.getPort());
+    ftpClient.connect(url.getHost(), url.getPort() < 0 ? DEFAULT_PORT : url.getPort());
     ftpClient.login(username, password);
     ftpClient.enterLocalPassiveMode();
     ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 
-    return new SourceEndpointHandler() {
+    return new EndpointHandler() {
 
       @Override
-      public InputStream getInputStream() throws IOException {
-        InputStream is = ftpClient.retrieveFileStream(url.getPath());
+      public List<String> listFiles(String path) throws IOException {
+
+        FTPFile[] flist = ftpClient.listFiles(path, new FTPFileFilter() {
+          @Override
+          public boolean accept(FTPFile file) {
+            // TODO symlink case.
+            return file.isFile();
+          }
+        });
+
+        List<String> fileList = new ArrayList<>();
+        for (FTPFile file : flist) {
+          fileList.add(path + file.getName());
+        }
+
+        return fileList;
+      }
+
+      @Override
+      public InputStream newTransferInputStream(String path) throws IOException {
+        InputStream is = ftpClient.retrieveFileStream(path);
         if (is == null) {
-          throw new IOException(String.format("Error (%d) creating stream: %s", ftpClient.getReplyCode(), ftpClient.getReplyString()));
+          throw new IOException(String.format("Error (%d) creating stream for file [%s]: %s", ftpClient.getReplyCode(), path, ftpClient.getReplyString()));
 
         }
         return is;
       }
 
       @Override
-      public boolean finish() throws IOException {
-        boolean ret = ftpClient.completePendingCommand();
-        ftpClient.logout();
-        ftpClient.disconnect();
-        return ret;
-      }
-    };
-
-  }
-
-
-  /**
-   * Returns a DestEndpointHandler for FTP protocol, already connected and logged in.
-   *
-   * @param url Complete Server/file URL
-   * @param username Server username
-   * @param password Server password
-   * @return The newly created dest handler.
-   * @throws IOException On any comm error.
-   */
-  public static DestEndpointHandler buildDestHandler(final URL url, final String username, final String password) throws IOException {
-
-    final FTPClient ftpClient = new FTPClient();
-    ftpClient.connect(url.getHost(), url.getPort() < 0 ? url.getDefaultPort() : url.getPort());
-    ftpClient.login(username, password);
-    ftpClient.enterLocalPassiveMode();
-    ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
-
-    return new DestEndpointHandler() {
-
-      @Override
-      public OutputStream getOutputStream() throws IOException {
-        OutputStream os = ftpClient.storeFileStream(url.getPath());
+      public OutputStream newTransferOutputStream(String path) throws IOException {
+        OutputStream os = ftpClient.storeFileStream(path);
         if (os == null) {
-          throw new IOException(String.format("Error (%d) creating stream: %s", ftpClient.getReplyCode(), ftpClient.getReplyString()));
+          throw new IOException(String.format("Error (%d) creating stream for file [%s]: %s", ftpClient.getReplyCode(), path, ftpClient.getReplyString()));
         }
 
         return os;
       }
 
       @Override
-      public boolean finish() throws IOException {
-        boolean ret = ftpClient.completePendingCommand();
+      public boolean finishTransferTransaction() throws IOException {
+        return ftpClient.completePendingCommand();
+      }
+
+      @Override
+      public void disconnect() throws IOException {
         ftpClient.logout();
         ftpClient.disconnect();
-        return ret;
       }
     };
 
