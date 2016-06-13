@@ -62,6 +62,9 @@ public class FileTransferNodeStepPlugin implements NodeStepPlugin {
     TRANSFER_ERROR
   }
 
+  // Deafault Constructor
+  public FileTransferNodeStepPlugin() {}
+
 
   FileTransferNodeStepPlugin(String sourceURLString, String sourceUsername, String sourcePassword, String destURLString, String destUsername, String destPassword) {
     this.sourceURLString = sourceURLString;
