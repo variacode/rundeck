@@ -19,7 +19,7 @@ configurations{
 dependencies {
     pluginLibs group: 'commons-net', name: 'commons-net', version: '3.5'
     pluginLibs group: 'commons-io', name: 'commons-io', version: '2.5'
-    pluginLibs group: 'com.jcraft', name: 'jsch'
+    pluginLibs group: 'com.jcraft', name: 'jsch', version: '0.1.53'
     testCompile('junit:junit:4.8.1')
 }
 
