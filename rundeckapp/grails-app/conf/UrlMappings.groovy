@@ -38,7 +38,6 @@ class UrlMappings {
         "/api/$api_version/execution/$id/output/node/$nodename/step/$stepctx**?"(controller: 'execution', action: 'apiExecutionOutput')
         "/api/$api_version/execution/$id/output/step/$stepctx**?"(controller: 'execution', action: 'apiExecutionOutput')
 
-
         "/api/$api_version/executions/delete"(controller: 'execution', action: 'apiExecutionDeleteBulk')
 
 
@@ -237,6 +236,10 @@ class UrlMappings {
         "/plugin/icon/$service/$name"(controller: 'plugin', action: 'pluginIcon')
         "/plugin/file/$service/$name/$path**"(controller: 'plugin', action: 'pluginFile')
         "/plugin/i18n/$service/$name/$path**"(controller: 'plugin', action: 'pluginMessages')
+
+
+        "/heartbeat/$project/jobs/"(controller: 'heartbeat', action: 'jobs')
+
 
         "404"(view: '/404')
         "500"(view: '/error')
