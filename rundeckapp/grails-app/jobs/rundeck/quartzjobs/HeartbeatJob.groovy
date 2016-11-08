@@ -25,8 +25,8 @@ class HeartbeatJob {
         if(frameworkService.isClusterModeEnabled()){
             //I'm alive heartbeat
             def msg = heartbeatService.generateNodeMessage(frameworkService.serverUUID, frameworkService.frameworkNodeName)
-            def msg1 = heartbeatService.generateNodeMessage('27f48776-8168-4ab0-8415-fc0b665ddd88', 'wintermute')
-            def msg2 = heartbeatService.generateNodeMessage('27f48776-8168-4ab0-8415-fc0b665ddd887', 'neuromancer')
+            def msg1 = heartbeatService.generateNodeMessage('31f48776-8168-4ab0-8415-fc0b665ddd88', 'wintermute')
+            def msg2 = heartbeatService.generateNodeMessage('18f48776-8168-4ab0-8415-fc0b665ddd887', 'neuromancer')
             println(msg.toString())
             //check job with !scheduleOwnerClaimed
             /*List<Messaging> msgs = messagingService.getJobMessages(frameworkService.serverUUID)

@@ -82,6 +82,15 @@
         </li>
 
         </g:if>
+        <g:if test="${g.logStorageEnabled() || selected=='cluster'}">
+
+            <li class="${selected == 'cluster' ? 'active' : ''}">
+                <g:link controller="heartbeat" action="jobs" params="[project: params.project ?: request.project]">
+                    <g:message code="gui.menu.LogStorage" default="Cluster"/>
+                </g:link>
+            </li>
+
+        </g:if>
 
     </g:if>
     <li class="${selected == 'plugins' ? 'active' : ''}">

@@ -37,7 +37,7 @@
         <g:render template="/common/messages"/>
     </div>
 </div>
-<div class="row">
+    <div class="row">
     <div class="col-sm-3">
         <g:render template="configNav" model="[selected: 'syscfg']"/>
 

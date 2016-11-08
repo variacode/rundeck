@@ -188,6 +188,7 @@ class HeartbeatController {
         UserAndRolesAuthContext authContext
         authContext = frameworkService.getAuthContextForSubjectAndProject(session.subject, params.project)
         query.setProjFilter(params.project)
+        query.setScheduledFilter(new Boolean(true))
 
         def results=listWorkflows(query,authContext,session.user)
         results.execQueryParams=query.asExecQueryParams()
@@ -327,9 +328,13 @@ class HeartbeatController {
 
     def admin () {
         println(params.idlist)
-        println(request.idlist)
+        println(params.serverNode)
+        def success = []
+        success[0] = [message: scheduledExecutionService.lookupMessage('api.project.updateResources.succeeded', [params.project] as Object[])]
+        flash.bulkJobResult = [success: success]
         log.debug("ScheduledExecutionController: flipScheduleEnabledBulk : params: " + params)
-
+        println(flash.bulkJobResult.success.message)
+        redirect(action: 'jobs', params: [project: params.project])
     }
 
 }

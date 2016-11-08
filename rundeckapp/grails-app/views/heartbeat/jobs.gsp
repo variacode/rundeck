@@ -20,12 +20,11 @@
     <g:set var="rkey" value="${g.rkey()}" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="layout" content="base"/>
-    <meta name="tabpage" content="jobs"/>
+    <meta name="tabpage" content="configure"/>
     <title><g:message code="gui.menu.Workflows"/> - <g:enc>${params.project ?: request.project}</g:enc></title>
-    <g:javascript library="yellowfade"/>
-    <g:javascript library="pagehistory"/>
+
     <g:javascript library="prototype/effects"/>
-    <asset:javascript src="menu/jobs.js"/>
+
     <g:if test="${grails.util.Environment.current==grails.util.Environment.DEVELOPMENT}">
         <asset:javascript src="menu/joboptionsTest.js"/>
         <asset:javascript src="menu/job-remote-optionsTest.js"/>
@@ -537,9 +536,21 @@
             ko.applyBindings(bulkeditor,document.getElementById('job_group_tree'));
             ko.applyBindings(bulkeditor,document.getElementById('group_controls'));
         });
+
+
+        function getidlist(){
+            var idlist =  jQuery('.jobbulkeditfield input[type=checkbox]:checked');
+            var idliststr = "";
+            for(var i = 0; i < idlist.length; i++){
+                idliststr += idlist[i].value + ',';
+            }
+            jQuery("#hidlist").val(idliststr);
+            return true;
+        }
+
     </script>
-    <g:javascript library="yellowfade"/>
-    <asset:javascript src="menu/joboptions.js"/>
+
+
     <style type="text/css">
     .error{
         color:red;
@@ -551,7 +562,17 @@
     </style>
 </head>
 <body>
+<div class="row">
+    <div class="col-sm-12">
+        <g:render template="/common/messages"/>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-3">
+        <g:render template="/menu/configNav" model="[selected: 'cluster']"/>
 
+    </div>
+    <div class="col-sm-9">
 
 <g:if test="${flash.bulkJobResult?.errors}">
     <div class="alert alert-dismissable alert-warning">
@@ -608,15 +629,16 @@
 <!--
 option 1 node list on same screen
 -->
+<g:form controller="heartbeat"  useToken="true" params="[project: params.project ?: request.project]" name="heartbeatfrm">
 <div class="panel">
 
     Alive nodes:
 
         <g:each in="${params.nodelist}" var="node">
             <ul>
-            <span> ${node.body.nodeName}</span>
-            <!--span>${node.body.uptime}</span-->
-            <g:radio name="serverNode " value="${node.id}"> </g:radio>
+                <g:radio name="serverNode" value="${node.sender}"> </g:radio>
+                <span data-server-uuid="${node.sender}" data-server-name="${node.body.nodeName}" class="rundeck-server-uuid text-muted">
+                </span>
             </ul>
         </g:each>
 
@@ -624,13 +646,16 @@ option 1 node list on same screen
 </div>
 
 <!--   -->
-<g:form controller="heartbeat"  useToken="true" params="[project: params.project ?: request.project]">
-    <g:hiddenField name="idlist" value="1,2,3" />
+
+    <g:hiddenField id="hidlist" name="idlist" value="" />
 <g:actionSubmit
         controller='heartbeart'
         action="admin"
                 value="Change execution node"
-                class="btn btn-default"/>
+                class="btn btn-default"
+                onclick="return getidlist()"/>
 </g:form>
+        </div>
+    </div>
 </body>
 </html>
