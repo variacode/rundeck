@@ -856,12 +856,16 @@ class ScheduledExecutionController  extends ControllerBase{
                 'user.name': (session?.user?: "anonymous"),
         ]
         extraJobProps.putAll rundeckProps.collectEntries {['rundeck.'+it.key,it.value]}
+        Map globals=frameworkService.getProjectGlobals(scheduledExecution.project)
 
         def replacement= { Object[] group ->
             if (group[2] == 'job' && jobprops[group[3]] && scheduledExecution.properties.containsKey(jobprops[group[3]])) {
                 scheduledExecution.properties.get(jobprops[group[3]]).toString()
             } else if (group[2] == 'job' && null != extraJobProps[group[3]]) {
                 def value = extraJobProps[group[3]]
+                value.toString()
+            }else if (group[2] == 'globals' && null != globals[group[3]]) {
+                def value = globals[group[3]]
                 value.toString()
             }else if (group[2] == 'rundeck' && null != rundeckProps[group[3]]) {
                 def value = rundeckProps[group[3]]
@@ -886,7 +890,7 @@ class ScheduledExecutionController  extends ControllerBase{
         def codecs=['URIComponent','URL']
         def result=[]
         arr.eachWithIndex { String entry, int i ->
-            result<<entry.replaceAll(/(\$\{(job|option|rundeck)\.([^}]+?(\.value)?)\})/) { Object[] group ->
+            result<<entry.replaceAll(/(\$\{(job|option|rundeck|globals)\.([^}]+?(\.value)?)\})/) { Object[] group ->
                 def val = replacement(group)
                  if (null != val) {
                      if(!isHttp){
@@ -1896,16 +1900,7 @@ class ScheduledExecutionController  extends ControllerBase{
         def nodeStepTypes = frameworkService.getNodeStepPluginDescriptions()
         def stepTypes = frameworkService.getStepPluginDescriptions()
         def strategyPlugins = scheduledExecutionService.getWorkflowStrategyPluginDescriptions()
-        def uiPluginProfiles = [:]
-        nodeStepTypes.each{ Description desc->
-            def profile = uiPluginService.getProfileFor(ServiceNameConstants.WorkflowNodeStep, desc.name)
-            uiPluginProfiles[ServiceNameConstants.WorkflowNodeStep+":"+desc.name]=profile
-        }
-        stepTypes.each {
-            def profile = uiPluginService.getProfileFor(ServiceNameConstants.WorkflowStep, it.name)
-            uiPluginProfiles[ServiceNameConstants.WorkflowStep+":"+it.name]=profile
-        }
-
+        
         def crontab = scheduledExecution.timeAndDateAsBooleanMap()
 
         def notificationPlugins = notificationService.listNotificationPlugins()
@@ -1918,8 +1913,7 @@ class ScheduledExecutionController  extends ControllerBase{
                 nextExecutionTime   :scheduledExecutionService.nextExecutionTime(scheduledExecution),
                 authorized          :scheduledExecutionService.userAuthorizedForJob(request,scheduledExecution,authContext),
                 nodeStepDescriptions: nodeStepTypes,
-                stepDescriptions:stepTypes,
-                 uiPluginProfiles:uiPluginProfiles]
+                stepDescriptions    : stepTypes]
     }
 
 
@@ -2659,7 +2653,8 @@ class ScheduledExecutionController  extends ControllerBase{
             log.warn("Cyclic dependency for options for job ${scheduledExecution.extid}: (${toporesult.cycle})")
             model.optionsDependenciesCyclic = true
         }
-        if (toporesult.result) {
+        if (toporesult.result && !scheduledExecution.options.any { it.sortIndex != null }) {
+            //auto sort only if no ordering is defined
             model.optionordering = toporesult.result
         }
 
@@ -2672,15 +2667,12 @@ class ScheduledExecutionController  extends ControllerBase{
             def optData = [
                     'optionDependencies': model.optiondependencies[optName],
                     'optionDeps': model.dependentoptions[optName],
-                    optionAutoReload: model.dependentoptions[optName] && opt.enforced || model.selectedoptsmap && model.selectedoptsmap[optName]
             ];
             if (opt.realValuesUrl != null) {
                 optData << [
                         'hasUrl': true,
                         'scheduledExecutionId': scheduledExecution.extid,
                         'selectedOptsMap': model.selectedoptsmap ? model.selectedoptsmap[optName] : '',
-                        'loadonstart': !model.optiondependencies[optName] || model.optionsDependenciesCyclic,
-                        'optionAutoReload': (model.dependentoptions[optName] || model.selectedoptsmap && model.selectedoptsmap[optName]) && !model.optionsDependenciesCyclic
                 ]
             } else {
                 optData['localOption'] = true;
@@ -3238,7 +3230,7 @@ class ScheduledExecutionController  extends ControllerBase{
             return
         }
         def jobid = params.id
-        def jobAsUser, jobArgString, jobLoglevel, jobFilter, jobRunAtTime
+        def jobAsUser, jobArgString, jobLoglevel, jobFilter, jobRunAtTime, jobOptions
         if (request.format == 'json') {
             def data= request.JSON
             jobAsUser = data?.asUser
@@ -3246,11 +3238,13 @@ class ScheduledExecutionController  extends ControllerBase{
             jobLoglevel = data?.loglevel
             jobFilter = data?.filter
             jobRunAtTime = data?.runAtTime
+            jobOptions = data?.options
         } else {
             jobAsUser=params.asUser
             jobArgString=params.argString
             jobLoglevel=params.loglevel
             jobRunAtTime = params.runAtTime
+            jobOptions = params.option
         }
 
         def ScheduledExecution scheduledExecution = scheduledExecutionService.getByIDorUUID(jobid)
@@ -3277,7 +3271,11 @@ class ScheduledExecutionController  extends ControllerBase{
         }
         def inputOpts = [:]
 
-        if (jobArgString) {
+        if (request.api_version >= ApiRequestFilters.V18 && jobOptions && jobOptions instanceof Map) {
+            jobOptions.each { k, v ->
+                inputOpts['option.' + k] = v
+            }
+        } else if (jobArgString) {
             inputOpts["argString"] = jobArgString
         }
         if (jobLoglevel) {

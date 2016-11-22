@@ -1763,14 +1763,10 @@ class ExecutionService implements ApplicationContextAware, StepExecutor, NodeSte
             Date now        = java.util.Calendar.getInstance().getTime()
             Date startTime
             try {
-                if (input.runAtTime.length() == 25 || input.runAtTime.length() == 24) {
+                try{
                     startTime   = ISO_8601_DATE_FORMAT.get().parse(input.runAtTime)
-                } else if (input.runAtTime.length() == 29 || input.runAtTime.length() == 28) {
+                }catch (ParseException e1){
                     startTime	= ISO_8601_DATE_FORMAT_WITH_MS.get().parse(input.runAtTime)
-                } else {
-                    return [success: false, failed: true, error: 'failed',
-                            message: 'Invalid date/time format, not the expected length',
-                            options: input.option]
                 }
             } catch (ParseException | IllegalArgumentException e) {
                 return [success: false, failed: true, error: 'failed',
@@ -1959,7 +1955,7 @@ class ExecutionService implements ApplicationContextAware, StepExecutor, NodeSte
                     isNotNull('dateStarted')
                 }
                 if (found && !(retry && prevId && found.size()==1 && found[0].id==prevId)) {
-                    throw new ExecutionServiceException('Job "' + se.jobName + '" [' + se.extid + '] is currently being executed (execution [' + found.id + '])','conflict')
+                    throw new ExecutionServiceException('Job "' + se.jobName + '" {{Job ' + se.extid + '}} is currently being executed {{Execution ' + found[0].id + '}}','conflict')
                 }
                 return int_createExecution(se,authContext,runAsUser,input)
             }
