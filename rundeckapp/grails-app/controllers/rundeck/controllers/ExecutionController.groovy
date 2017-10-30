@@ -36,11 +36,12 @@ import com.dtolabs.rundeck.plugins.logs.ContentConverterPlugin
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import com.dtolabs.rundeck.server.plugins.DescribedPlugin
 import grails.converters.JSON
-import org.codehaus.groovy.grails.web.mapping.LinkGenerator
+import grails.web.mapping.LinkGenerator
+//import org.codehaus.groovy.grails.web.mapping.LinkGenerator
 import rundeck.CommandExec
 import rundeck.Execution
 import rundeck.ScheduledExecution
-import rundeck.filters.ApiRequestFilters
+//import rundeck.filters.ApiRequestFilters
 import rundeck.services.ApiService
 import rundeck.services.ConfigurationService
 import rundeck.services.ExecutionService
@@ -789,18 +790,18 @@ class ExecutionController extends ControllerBase{
      * API: /api/execution/{id}/output, version 5
      */
     def apiExecutionOutput() {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V5)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V5)) {
+//            return
+//        }
         params.stateOutput=false
 
-        if (request.api_version < ApiRequestFilters.V9) {
-            params.nodename = null
-            params.stepctx = null
-        }
-        if (request.api_version < ApiRequestFilters.V21) {
-            params.remove('compacted')
-        }
+//        if (request.api_version < ApiRequestFilters.V9) {
+//            params.nodename = null
+//            params.stepctx = null
+//        }
+//        if (request.api_version < ApiRequestFilters.V21) {
+//            params.remove('compacted')
+//        }
         return tailExecutionOutput()
     }
     static final String invalidXmlPattern = "[^" + "\\u0009\\u000A\\u000D" + "\\u0020-\\uD7FF" +
@@ -895,12 +896,12 @@ class ExecutionController extends ControllerBase{
                             datamap.log = datamap.log?.replaceAll(invalidXmlPattern, '')
                         }
                         //xml
-                        if (apiVersion <= ApiRequestFilters.V5) {
-                            def text = datamap.remove('log')
-                            delegate.'entry'(datamap, text)
-                        } else {
-                            delegate.'entry'(datamap)
-                        }
+//                        if (apiVersion <= ApiRequestFilters.V5) {
+//                            def text = datamap.remove('log')
+//                            delegate.'entry'(datamap, text)
+//                        } else {
+//                            delegate.'entry'(datamap)
+//                        }
                     }
                 }
             }
@@ -915,13 +916,13 @@ class ExecutionController extends ControllerBase{
      * API: /api/execution/{id}/output/state, version ?
      */
     def apiExecutionStateOutput() {
-        if (!apiService.requireVersion(request,response,ApiRequestFilters.V10)) {
-            return
-        }
+//        if (!apiService.requireVersion(request,response,ApiRequestFilters.V10)) {
+//            return
+//        }
         params.stateOutput = true
-        if (request.api_version < ApiRequestFilters.V21) {
-            params.remove('compacted')
-        }
+//        if (request.api_version < ApiRequestFilters.V21) {
+//            params.remove('compacted')
+//        }
         return tailExecutionOutput()
     }
     /**
@@ -1525,13 +1526,13 @@ class ExecutionController extends ControllerBase{
             return
         }
 
-        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
-            return apiService.renderErrorFormat(response,[
-                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                    code: 'api.error.item.unsupported-format',
-                    args: [response.format]
-            ])
-        }
+//        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+//            return apiService.renderErrorFormat(response,[
+//                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+//                    code: 'api.error.item.unsupported-format',
+//                    args: [response.format]
+//            ])
+//        }
         withFormat{
             xml{
                 return executionService.respondExecutionsXml(request,response, [e])
@@ -1545,9 +1546,9 @@ class ExecutionController extends ControllerBase{
      * API: /api/execution/{id}/state , version 10
      */
     def apiExecutionState(){
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V10)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V10)) {
+//            return
+//        }
         def Execution e = Execution.get(params.id)
 
         if(!apiService.requireExists(response,e,['Execution ID',params.id])){
@@ -1648,13 +1649,13 @@ class ExecutionController extends ControllerBase{
                 return render(contentType: "application/json", encoding: "UTF-8",text:state.encodeAsJSON())
             }
             xml{
-                return render(contentType: "text/xml", encoding: "UTF-8") {
-                    result(success: "true", apiversion: ApiRequestFilters.API_CURRENT_VERSION) {
-                        executionState(id:params.id){
-                            new BuilderUtil().mapToDom(convertXml(state), delegate)
-                        }
-                    }
-                }
+//                return render(contentType: "text/xml", encoding: "UTF-8") {
+//                    result(success: "true", apiversion: ApiRequestFilters.API_CURRENT_VERSION) {
+//                        executionState(id:params.id){
+//                            new BuilderUtil().mapToDom(convertXml(state), delegate)
+//                        }
+//                    }
+//                }
             }
         }
     }
@@ -1681,10 +1682,10 @@ class ExecutionController extends ControllerBase{
         def ScheduledExecution se = e.scheduledExecution
         def user=session.user
         def killas=null
-        if (params.asUser && apiService.requireVersion(request,response,ApiRequestFilters.V5)) {
-            //authorized within service call
-            killas= params.asUser
-        }
+//        if (params.asUser && apiService.requireVersion(request,response,ApiRequestFilters.V5)) {
+//            //authorized within service call
+//            killas= params.asUser
+//        }
         ExecutionService.AbortResult abortresult = executionService.abortExecution(
                 se,
                 e,
@@ -1699,13 +1700,13 @@ class ExecutionController extends ControllerBase{
             reportstate.reason= abortresult.reason
         }
 
-        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
-            return apiService.renderErrorXml(response,[
-                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                    code: 'api.error.item.unsupported-format',
-                    args: [response.format]
-            ])
-        }
+//        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+//            return apiService.renderErrorXml(response,[
+//                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+//                    code: 'api.error.item.unsupported-format',
+//                    args: [response.format]
+//            ])
+//        }
         withFormat{
             xml{
                 apiService.renderSuccessXml(request,response) {
@@ -1739,9 +1740,9 @@ class ExecutionController extends ControllerBase{
      * @return
      */
     def apiExecutionDelete (){
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V12)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V12)) {
+//            return
+//        }
         def Execution e = Execution.get(params.id)
         if(!apiService.requireExists(response,e,['Execution ID',params.id])){
             return
@@ -1778,9 +1779,9 @@ class ExecutionController extends ControllerBase{
      * @return
      */
     def apiExecutionDeleteBulk() {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V12)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V12)) {
+//            return
+//        }
         return executionDeleteBulk()
     }
     /**
@@ -1842,9 +1843,9 @@ class ExecutionController extends ControllerBase{
      * API: /api/14/project/NAME/executions
      */
     def apiExecutionsQueryv14(ExecutionQuery query){
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
-            return
-        }
+//        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+//            return
+//        }
         return apiExecutionsQuery(query)
     }
 
@@ -1852,9 +1853,9 @@ class ExecutionController extends ControllerBase{
      * API: /api/5/executions query interface, deprecated since v14
      */
     def apiExecutionsQuery(ExecutionQuery query){
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V5)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V5)) {
+//            return
+//        }
         if(query?.hasErrors()){
             return apiService.renderErrorFormat(response,
                     [
@@ -1873,13 +1874,13 @@ class ExecutionController extends ControllerBase{
         }
         AuthContext authContext = frameworkService.getAuthContextForSubjectAndProject(session.subject,params.project)
 
-        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
-            return apiService.renderErrorFormat(response,[
-                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                    code: 'api.error.item.unsupported-format',
-                    args: [response.format]
-            ])
-        }
+//        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+//            return apiService.renderErrorFormat(response,[
+//                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+//                    code: 'api.error.item.unsupported-format',
+//                    args: [response.format]
+//            ])
+//        }
         query.projFilter=params.project
         if (null != query) {
             query.configureFilter()
@@ -1932,10 +1933,10 @@ class ExecutionController extends ControllerBase{
             }
         }
 
-        if (request.api_version < ApiRequestFilters.V20 && query.executionTypeFilter) {
-            //ignore
-            query.executionTypeFilter = null
-        }
+//        if (request.api_version < ApiRequestFilters.V20 && query.executionTypeFilter) {
+//            //ignore
+//            query.executionTypeFilter = null
+//        }
         def resOffset = params.offset ? params.int('offset') : 0
         def resMax = params.max ?
                 params.int('max') :
@@ -1978,9 +1979,9 @@ class ExecutionController extends ControllerBase{
      * @return
      */
     private def apiExecutionMode(boolean active) {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V14)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V14)) {
+//            return
+//        }
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         def respFormat = apiService.extractResponseFormat(request, response, ['xml', 'json'])
 
@@ -2018,9 +2019,9 @@ class ExecutionController extends ControllerBase{
      * List input files for an execution
      */
     def apiExecutionInputFiles() {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V19)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V19)) {
+//            return
+//        }
         if (!apiService.requireParameters(params, response, ['id'])) {
             return
         }

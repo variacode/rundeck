@@ -56,293 +56,293 @@ import rundeck.services.QuartzJobScheduleManager
 import rundeck.services.scm.ScmJobImporter
 
 beans={
-    xmlns context: "http://www.springframework.org/schema/context"
-    log4jConfigurer(org.springframework.beans.factory.config.MethodInvokingFactoryBean) {
-        targetClass = "org.springframework.util.Log4jConfigurer"
-        targetMethod = "initLogging"
-        arguments = ["classpath:log4j.properties"]
-    }
-    defaultGrailsServiceInjectorJobListener(GrailsServiceInjectorJobListener){
-        name= 'defaultGrailsServiceInjectorJobListener'
-        services=[grailsApplication: ref('grailsApplication'),
-                executionService: ref('executionService'),
-                frameworkService: ref('frameworkService'),
-                metricRegistry:ref('metricRegistry'),
-                executionUtilService:ref('executionUtilService')]
-        quartzScheduler=ref('quartzScheduler')
-    }
-    def rdeckBase
-    if (!application.config.rdeck.base) {
-        //look for system property
-        rdeckBase = System.getProperty('rdeck.base')
-    } else {
-        rdeckBase = application.config.rdeck.base
-    }
-    if(!rdeckBase){
-        System.err.println("rdeck.base was not defined in application config or as a system property")
-        return
-    }
-    def serverLibextDir = application.config.rundeck?.server?.plugins?.dir?:"${rdeckBase}/libext"
-    File pluginDir = new File(serverLibextDir)
-    def serverLibextCacheDir = application.config.rundeck?.server?.plugins?.cacheDir?:"${serverLibextDir}/cache"
-    File cacheDir= new File(serverLibextCacheDir)
-    File varDir= new File(Constants.getBaseVar(rdeckBase))
+	xmlns context: "http://www.springframework.org/schema/context"
+	log4jConfigurer(org.springframework.beans.factory.config.MethodInvokingFactoryBean) {
+		targetClass = "org.springframework.util.Log4jConfigurer"
+		targetMethod = "initLogging"
+		arguments = ["classpath:log4j.properties"]
+	}
+	defaultGrailsServiceInjectorJobListener(GrailsServiceInjectorJobListener){
+		name= 'defaultGrailsServiceInjectorJobListener'
+		services=[grailsApplication: ref('grailsApplication'),
+		          executionService: ref('executionService'),
+		          frameworkService: ref('frameworkService'),
+		          metricRegistry:ref('metricRegistry'),
+		          executionUtilService:ref('executionUtilService')]
+		quartzScheduler=ref('quartzScheduler')
+	}
+	def rdeckBase
+	if (!application.config.rdeck.base) {
+		//look for system property
+		rdeckBase = System.getProperty('rdeck.base')
+	} else {
+		rdeckBase = application.config.rdeck.base
+	}
+	if(!rdeckBase){
+		System.err.println("rdeck.base was not defined in application config or as a system property")
+		return
+	}
+	def serverLibextDir = application.config.rundeck?.server?.plugins?.dir?:"${rdeckBase}/libext"
+	File pluginDir = new File(serverLibextDir)
+	def serverLibextCacheDir = application.config.rundeck?.server?.plugins?.cacheDir?:"${serverLibextDir}/cache"
+	File cacheDir= new File(serverLibextCacheDir)
+	File varDir= new File(Constants.getBaseVar(rdeckBase))
 
 
-    rundeckNodeSupport(NodeSupport){
+	rundeckNodeSupport(NodeSupport){
 
-    }
+	}
 
-    frameworkPropertyLookupFactory(FrameworkPropertyLookupFactory){
-        baseDir=rdeckBase
-    }
+	frameworkPropertyLookupFactory(FrameworkPropertyLookupFactory){
+		baseDir=rdeckBase
+	}
 
-    frameworkPropertyLookup(frameworkPropertyLookupFactory:'create'){
+	frameworkPropertyLookup(frameworkPropertyLookupFactory:'create'){
 
-    }
-    frameworkFilesystem(FrameworkFactory,rdeckBase){ bean->
-        bean.factoryMethod='createFilesystemFramework'
-    }
-    filesystemProjectManager(FrameworkFactory,frameworkFilesystem,ref('nodeService')){ bean->
-        bean.factoryMethod='createProjectManager'
-    }
+	}
+	frameworkFilesystem(FrameworkFactory,rdeckBase){ bean->
+		bean.factoryMethod='createFilesystemFramework'
+	}
+	filesystemProjectManager(FrameworkFactory,frameworkFilesystem,ref('nodeService')){ bean->
+		bean.factoryMethod='createProjectManager'
+	}
 
-    frameworkFactory(RundeckFrameworkFactory){
-        frameworkFilesystem=frameworkFilesystem
-        propertyLookup=ref('frameworkPropertyLookup')
-        type=application.config.rundeck?.projectsStorageType?:'filesystem'
-        dbProjectManager=ref('projectManagerService')
-        filesystemProjectManager=ref('filesystemProjectManager')
-        pluginManagerService=ref('rundeckServerServiceProviderLoader')
-    }
+	frameworkFactory(RundeckFrameworkFactory){
+		frameworkFilesystem=frameworkFilesystem
+		propertyLookup=ref('frameworkPropertyLookup')
+		type=application.config.rundeck?.projectsStorageType?:'filesystem'
+		dbProjectManager=ref('projectManagerService')
+		filesystemProjectManager=ref('filesystemProjectManager')
+		pluginManagerService=ref('rundeckServerServiceProviderLoader')
+	}
 
-    rundeckFramework(frameworkFactory:'createFramework'){
-    }
+	rundeckFramework(frameworkFactory:'createFramework'){
+	}
 
-    def configDir = new File(Constants.getFrameworkConfigDir(rdeckBase))
+	def configDir = new File(Constants.getFrameworkConfigDir(rdeckBase))
 
-    rundeckFilesystemPolicyAuthorization(AuthorizationFactory, configDir){bean->
-        bean.factoryMethod='createFromDirectory'
-    }
+	rundeckFilesystemPolicyAuthorization(AuthorizationFactory, configDir){bean->
+		bean.factoryMethod='createFromDirectory'
+	}
 
-    rundeckJobScheduleManager(QuartzJobScheduleManager){
-        quartzScheduler=ref('quartzScheduler')
-    }
+	rundeckJobScheduleManager(QuartzJobScheduleManager){
+		quartzScheduler=ref('quartzScheduler')
+	}
 
-    //cache for provider loaders bound to a file
-    providerFileCache(PluginManagerService) { bean ->
-        bean.factoryMethod = 'createProviderLoaderFileCache'
-    }
+	//cache for provider loaders bound to a file
+	providerFileCache(PluginManagerService) { bean ->
+		bean.factoryMethod = 'createProviderLoaderFileCache'
+	}
 
-    //scan for jar plugins
-    jarPluginScanner(JarPluginScanner, pluginDir, cacheDir, ref('providerFileCache'))
+	//scan for jar plugins
+	jarPluginScanner(JarPluginScanner, pluginDir, cacheDir, ref('providerFileCache'))
 
-    //scan for script-based plugins
-    scriptPluginScanner(ScriptPluginScanner, pluginDir, cacheDir, ref('providerFileCache'))
+	//scan for script-based plugins
+	scriptPluginScanner(ScriptPluginScanner, pluginDir, cacheDir, ref('providerFileCache'))
 
-    //cache for plugins loaded via scanners
-    filePluginCache(FilePluginCache, ref('providerFileCache')) {
-        scanners = [
-                ref('jarPluginScanner'),
-                ref('scriptPluginScanner')
-        ]
-    }
+	//cache for plugins loaded via scanners
+	filePluginCache(FilePluginCache, ref('providerFileCache')) {
+		scanners = [
+				ref('jarPluginScanner'),
+				ref('scriptPluginScanner')
+		]
+	}
 
-    /*
-     * Define beans for Rundeck core-style plugin loader to load plugins from jar/zip files
-     */
-    rundeckServerServiceProviderLoader(PluginManagerService) {
-        extdir = pluginDir
-        cachedir = cacheDir
-        cache = filePluginCache
-        serviceAliases = [WorkflowNodeStep: 'RemoteScriptNodeStep']
-    }
+	/*
+	 * Define beans for Rundeck core-style plugin loader to load plugins from jar/zip files
+	 */
+	rundeckServerServiceProviderLoader(PluginManagerService) {
+		extdir = pluginDir
+		cachedir = cacheDir
+		cache = filePluginCache
+		serviceAliases = [WorkflowNodeStep: 'RemoteScriptNodeStep']
+	}
 
-    /**
-     * the Notification plugin provider service
-     */
-    notificationPluginProviderService(NotificationPluginProviderService){
-        rundeckServerServiceProviderLoader=ref('rundeckServerServiceProviderLoader')
-    }
-    /**
-     * the StreamingLogReader plugin provider service
-     */
-    streamingLogReaderPluginProviderService(StreamingLogReaderPluginProviderService){
-        rundeckServerServiceProviderLoader=ref('rundeckServerServiceProviderLoader')
-    }
-    /**
-     * the StreamingLogReader plugin provider service
-     */
-    streamingLogWriterPluginProviderService(StreamingLogWriterPluginProviderService){
-        rundeckServerServiceProviderLoader=ref('rundeckServerServiceProviderLoader')
-    }
-    /**
-     * the LogFileStorage plugin provider service (rundeck v2.0+)
-     */
-    executionFileStoragePluginProviderService(ExecutionFileStoragePluginProviderService) {
-        rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
+	/**
+	 * the Notification plugin provider service
+	 */
+	notificationPluginProviderService(NotificationPluginProviderService){
+		rundeckServerServiceProviderLoader=ref('rundeckServerServiceProviderLoader')
+	}
+	/**
+	 * the StreamingLogReader plugin provider service
+	 */
+	streamingLogReaderPluginProviderService(StreamingLogReaderPluginProviderService){
+		rundeckServerServiceProviderLoader=ref('rundeckServerServiceProviderLoader')
+	}
+	/**
+	 * the StreamingLogReader plugin provider service
+	 */
+	streamingLogWriterPluginProviderService(StreamingLogWriterPluginProviderService){
+		rundeckServerServiceProviderLoader=ref('rundeckServerServiceProviderLoader')
+	}
+	/**
+	 * the LogFileStorage plugin provider service (rundeck v2.0+)
+	 */
+	executionFileStoragePluginProviderService(ExecutionFileStoragePluginProviderService) {
+		rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
 //        pluginRegistry=ref("rundeckPluginRegistry")
-    }
-    logFileTaskExecutor(SimpleAsyncTaskExecutor,"LogFileStorage"){
-        concurrencyLimit= 2 + (application.config.rundeck?.execution?.logs?.fileStorage?.concurrencyLimit ?: 5)
-    }
-    nodeTaskExecutor(SimpleAsyncTaskExecutor,"NodeService-SourceLoader") {
-        concurrencyLimit = (application.config.rundeck?.nodeService?.concurrencyLimit ?: 25) //-1 for unbounded
-    }
-    //alternately use ThreadPoolTaskExecutor ...
+	}
+	logFileTaskExecutor(SimpleAsyncTaskExecutor,"LogFileStorage"){
+		concurrencyLimit= 2 + (application.config.rundeck?.execution?.logs?.fileStorage?.concurrencyLimit ?: 5)
+	}
+	nodeTaskExecutor(SimpleAsyncTaskExecutor,"NodeService-SourceLoader") {
+		concurrencyLimit = (application.config.rundeck?.nodeService?.concurrencyLimit ?: 25) //-1 for unbounded
+	}
+	//alternately use ThreadPoolTaskExecutor ...
 //    nodeTaskExecutor(ThreadPoolTaskExecutor) {
 //        threadNamePrefix="NodeService-SourceLoader"
 //        corePoolSize= (application.config.rundeck?.nodeService?.corePoolSize ?: 5)
 //        maxPoolSize= (application.config.rundeck?.nodeService?.maxPoolSize ?: 40)
 //    }
 
-    pluggableStoragePluginProviderService(PluggableStoragePluginProviderService) {
-        rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
-    }
-    storagePluginProviderService(StoragePluginProviderService,rundeckFramework) {
-        pluggableStoragePluginProviderService = ref('pluggableStoragePluginProviderService')
-    }
+	pluggableStoragePluginProviderService(PluggableStoragePluginProviderService) {
+		rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
+	}
+	storagePluginProviderService(StoragePluginProviderService,rundeckFramework) {
+		pluggableStoragePluginProviderService = ref('pluggableStoragePluginProviderService')
+	}
 
-    storageConverterPluginProviderService(StorageConverterPluginProviderService) {
-        rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
-    }
+	storageConverterPluginProviderService(StorageConverterPluginProviderService) {
+		rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
+	}
 
-    scmExportPluginProviderService(ScmExportPluginProviderService) {
-        rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
-    }
+	scmExportPluginProviderService(ScmExportPluginProviderService) {
+		rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
+	}
 
-    scmImportPluginProviderService(ScmImportPluginProviderService) {
-        rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
-    }
+	scmImportPluginProviderService(ScmImportPluginProviderService) {
+		rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
+	}
 
-    uiPluginProviderService(UIPluginProviderService,rundeckFramework) {
-        rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
-    }
+	uiPluginProviderService(UIPluginProviderService,rundeckFramework) {
+		rundeckServerServiceProviderLoader = ref('rundeckServerServiceProviderLoader')
+	}
 
-    scmJobImporter(ScmJobImporter)
+	scmJobImporter(ScmJobImporter)
 
-    containerPrincipalRoleSource(ContainerPrincipalRoleSource){
-        enabled=grailsApplication.config.rundeck?.security?.authorization?.containerPrincipal?.enabled in [true,'true']
-    }
-    containerRoleSource(ContainerRoleSource){
-        enabled=grailsApplication.config.rundeck?.security?.authorization?.container?.enabled in [true,'true']
-    }
-    preauthenticatedAttributeRoleSource(PreauthenticatedAttributeRoleSource){
-        enabled=grailsApplication.config.rundeck?.security?.authorization?.preauthenticated?.enabled in [true,'true']
-        attributeName=grailsApplication.config.rundeck?.security?.authorization?.preauthenticated?.attributeName
-        delimiter=grailsApplication.config.rundeck?.security?.authorization?.preauthenticated?.delimiter
-    }
+	containerPrincipalRoleSource(ContainerPrincipalRoleSource){
+		enabled=grailsApplication.config.rundeck?.security?.authorization?.containerPrincipal?.enabled in [true,'true']
+	}
+	containerRoleSource(ContainerRoleSource){
+		enabled=grailsApplication.config.rundeck?.security?.authorization?.container?.enabled in [true,'true']
+	}
+	preauthenticatedAttributeRoleSource(PreauthenticatedAttributeRoleSource){
+		enabled=grailsApplication.config.rundeck?.security?.authorization?.preauthenticated?.enabled in [true,'true']
+		attributeName=grailsApplication.config.rundeck?.security?.authorization?.preauthenticated?.attributeName
+		delimiter=grailsApplication.config.rundeck?.security?.authorization?.preauthenticated?.delimiter
+	}
 
-    def storageDir= new File(varDir, 'storage')
-    rundeckStorageTree(StorageTreeFactory){
-        rundeckFramework=ref('rundeckFramework')
-        pluginRegistry=ref("rundeckPluginRegistry")
-        storagePluginProviderService=ref('storagePluginProviderService')
-        storageConverterPluginProviderService=ref('storageConverterPluginProviderService')
-        configuration = application.config.rundeck?.storage?.flatten()
-        storageConfigPrefix='provider'
-        converterConfigPrefix='converter'
-        baseStorageType='file'
-        baseStorageConfig=['baseDir':storageDir.getAbsolutePath()]
-        defaultConverters=['StorageTimestamperConverter','KeyStorageLayer']
-        loggerName='org.rundeck.storage.events'
-    }
-    authRundeckStorageTree(AuthRundeckStorageTree, rundeckStorageTree)
+	def storageDir= new File(varDir, 'storage')
+	rundeckStorageTree(StorageTreeFactory){
+		rundeckFramework=ref('rundeckFramework')
+		pluginRegistry=ref("rundeckPluginRegistry")
+		storagePluginProviderService=ref('storagePluginProviderService')
+		storageConverterPluginProviderService=ref('storageConverterPluginProviderService')
+		configuration = application.config.rundeck?.storage?.flatten()
+		storageConfigPrefix='provider'
+		converterConfigPrefix='converter'
+		baseStorageType='file'
+		baseStorageConfig=['baseDir':storageDir.getAbsolutePath()]
+		defaultConverters=['StorageTimestamperConverter','KeyStorageLayer']
+		loggerName='org.rundeck.storage.events'
+	}
+	authRundeckStorageTree(AuthRundeckStorageTree, rundeckStorageTree)
 
-    rundeckConfigStorageTree(StorageTreeFactory){
-        frameworkPropertyLookup=ref('frameworkPropertyLookup')
-        pluginRegistry=ref("rundeckPluginRegistry")
-        storagePluginProviderService=ref('storagePluginProviderService')
-        storageConverterPluginProviderService=ref('storageConverterPluginProviderService')
-        configuration = application.config.rundeck?.config?.storage?.flatten()
-        storageConfigPrefix='provider'
-        converterConfigPrefix='converter'
-        baseStorageType='db'
-        baseStorageConfig=[namespace:'config']
-        defaultConverters=['StorageTimestamperConverter']
-        loggerName='org.rundeck.config.storage.events'
-    }
-    /**
-     * Define groovy-based plugins as Spring beans, registered in a hash map
-     */
-    pluginCustomizer(PluginCustomizer)
-    xmlns lang: 'http://www.springframework.org/schema/lang'
+	rundeckConfigStorageTree(StorageTreeFactory){
+		frameworkPropertyLookup=ref('frameworkPropertyLookup')
+		pluginRegistry=ref("rundeckPluginRegistry")
+		storagePluginProviderService=ref('storagePluginProviderService')
+		storageConverterPluginProviderService=ref('storageConverterPluginProviderService')
+		configuration = application.config.rundeck?.config?.storage?.flatten()
+		storageConfigPrefix='provider'
+		converterConfigPrefix='converter'
+		baseStorageType='db'
+		baseStorageConfig=[namespace:'config']
+		defaultConverters=['StorageTimestamperConverter']
+		loggerName='org.rundeck.config.storage.events'
+	}
+	/**
+	 * Define groovy-based plugins as Spring beans, registered in a hash map
+	 */
+	pluginCustomizer(PluginCustomizer)
+	xmlns lang: 'http://www.springframework.org/schema/lang'
 
-    appContextEmbeddedPluginFileSource(ApplicationContextPluginFileSource, '/WEB-INF/rundeck/plugins/')
+	appContextEmbeddedPluginFileSource(ApplicationContextPluginFileSource, '/WEB-INF/rundeck/plugins/')
 
-    rundeckEmbeddedPluginExtractor(RundeckEmbeddedPluginExtractor) {
-        pluginTargetDir = pluginDir
-    }
+	rundeckEmbeddedPluginExtractor(RundeckEmbeddedPluginExtractor) {
+		pluginTargetDir = pluginDir
+	}
 
-    def pluginRegistry=[:]
-    if (pluginDir.exists()) {
-        pluginDir.eachFileMatch(FileType.FILES, ~/.*\.groovy/) { File plugin ->
-            String beanName = plugin.name.replace('.groovy', '')
-            lang.groovy(id: beanName, 'script-source': "file:${pluginDir}/${plugin.name}",
-                    'refresh-check-delay': application.config.plugin.refreshDelay ?: -1,
-                    'customizer-ref':'pluginCustomizer'
-            )
-            pluginRegistry[beanName]=beanName
-        }
-    }
-    dbStoragePluginFactory(DbStoragePluginFactory)
-    pluginRegistry['db']='dbStoragePluginFactory'
-    storageTreeExecutionFileStoragePluginFactory(TreeExecutionFileStoragePluginFactory)
-    pluginRegistry['storage-tree'] = 'storageTreeExecutionFileStoragePluginFactory'
+	def pluginRegistry=[:]
+	if (pluginDir.exists()) {
+		pluginDir.eachFileMatch(FileType.FILES, ~/.*\.groovy/) { File plugin ->
+			String beanName = plugin.name.replace('.groovy', '')
+			lang.groovy(id: beanName, 'script-source': "file:${pluginDir}/${plugin.name}",
+					'refresh-check-delay': application.config.plugin.refreshDelay ?: -1,
+					'customizer-ref':'pluginCustomizer'
+			)
+			pluginRegistry[beanName]=beanName
+		}
+	}
+	dbStoragePluginFactory(DbStoragePluginFactory)
+	pluginRegistry['db']='dbStoragePluginFactory'
+	storageTreeExecutionFileStoragePluginFactory(TreeExecutionFileStoragePluginFactory)
+	pluginRegistry['storage-tree'] = 'storageTreeExecutionFileStoragePluginFactory'
 
-    def uploadsDir = new File(varDir, 'upload')
-    fsFileUploadPlugin(FSFileUploadPlugin) {
-        basePath = uploadsDir.absolutePath
-    }
-    pluginRegistry['filesystem-temp'] = 'fsFileUploadPlugin'
+	def uploadsDir = new File(varDir, 'upload')
+	fsFileUploadPlugin(FSFileUploadPlugin) {
+		basePath = uploadsDir.absolutePath
+	}
+	pluginRegistry['filesystem-temp'] = 'fsFileUploadPlugin'
 
-    //list of plugin classes to generate factory beans for
-    [
-            //log converters
-            JsonConverterPlugin,
-            PropertiesConverterPlugin,
-            HTMLTableViewConverterPlugin,
-            MarkdownConverterPlugin,
-            TabularDataConverterPlugin,
-            HTMLViewConverterPlugin,
-            //log filters
-            MaskPasswordsFilterPlugin,
-            SimpleDataFilterPlugin,
-            RenderDatatypeFilterPlugin,
-            QuietFilterPlugin,
-            HighlightFilterPlugin,
-    ].each {
-        "rundeckAppPlugin_${it.simpleName}"(PluginFactoryBean, it)
-    }
+	//list of plugin classes to generate factory beans for
+	[
+			//log converters
+			JsonConverterPlugin,
+			PropertiesConverterPlugin,
+			HTMLTableViewConverterPlugin,
+			MarkdownConverterPlugin,
+			TabularDataConverterPlugin,
+			HTMLViewConverterPlugin,
+			//log filters
+			MaskPasswordsFilterPlugin,
+			SimpleDataFilterPlugin,
+			RenderDatatypeFilterPlugin,
+			QuietFilterPlugin,
+			HighlightFilterPlugin,
+	].each {
+		"rundeckAppPlugin_${it.simpleName}"(PluginFactoryBean, it)
+	}
 
-    //TODO: scan defined plugins:
-    //    context.'component-scan'('base-package': "com.dtolabs.rundeck.server.plugins.logging")
-    rundeckPluginRegistryMap(MapFactoryBean) {
-        sourceMap = pluginRegistry
-    }
-    /**
-     * Registry bean contains both kinds of plugin
-     */
-    rundeckPluginRegistry(RundeckPluginRegistry){
-        rundeckEmbeddedPluginExtractor = ref('rundeckEmbeddedPluginExtractor')
-        pluginRegistryMap = ref('rundeckPluginRegistryMap')
-        rundeckServerServiceProviderLoader=ref('rundeckServerServiceProviderLoader')
-        pluginDirectory=pluginDir
-        pluginCacheDirectory=cacheDir
-    }
-    hMacSynchronizerTokensManager(HMacSynchronizerTokensManager){
+	//TODO: scan defined plugins:
+	//    context.'component-scan'('base-package': "com.dtolabs.rundeck.server.plugins.logging")
+	rundeckPluginRegistryMap(MapFactoryBean) {
+		sourceMap = pluginRegistry
+	}
+	/**
+	 * Registry bean contains both kinds of plugin
+	 */
+	rundeckPluginRegistry(RundeckPluginRegistry){
+		rundeckEmbeddedPluginExtractor = ref('rundeckEmbeddedPluginExtractor')
+		pluginRegistryMap = ref('rundeckPluginRegistryMap')
+		rundeckServerServiceProviderLoader=ref('rundeckServerServiceProviderLoader')
+		pluginDirectory=pluginDir
+		pluginCacheDirectory=cacheDir
+	}
+	hMacSynchronizerTokensManager(HMacSynchronizerTokensManager){
 
-    }
+	}
 
-    /**
-     * Track passwords on these plugins
-     */
-    resourcesPasswordFieldsService(PasswordFieldsService)
-    execPasswordFieldsService(PasswordFieldsService)
-    fcopyPasswordFieldsService(PasswordFieldsService)
+	/**
+	 * Track passwords on these plugins
+	 */
+	resourcesPasswordFieldsService(PasswordFieldsService)
+	execPasswordFieldsService(PasswordFieldsService)
+	fcopyPasswordFieldsService(PasswordFieldsService)
 
 
-    /// XML/JSON custom marshaller support
+	/// XML/JSON custom marshaller support
 
-    apiMarshallerRegistrar(ApiMarshallerRegistrar)
+	apiMarshallerRegistrar(ApiMarshallerRegistrar)
 }

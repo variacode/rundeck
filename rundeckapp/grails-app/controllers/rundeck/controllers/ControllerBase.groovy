@@ -17,12 +17,12 @@
 package rundeck.controllers
 
 import com.dtolabs.rundeck.plugins.rundeck.UIPlugin
+import org.grails.plugins.web.servlet.mvc.InvalidResponseHandler
+import org.grails.plugins.web.servlet.mvc.ValidResponseHandler
+import org.grails.web.servlet.mvc.GrailsWebRequest
+import org.grails.web.servlet.mvc.TokenResponseHandler
 import org.rundeck.util.Toposort
 import org.rundeck.web.infosec.HMacSynchronizerTokensHolder
-import org.codehaus.groovy.grails.web.metaclass.InvalidResponseHandler
-import org.codehaus.groovy.grails.web.metaclass.ValidResponseHandler
-import org.codehaus.groovy.grails.web.servlet.mvc.GrailsWebRequest
-import org.codehaus.groovy.grails.web.servlet.mvc.TokenResponseHandler
 import org.springframework.web.context.request.RequestContextHolder
 import rundeck.services.UiPluginService
 
@@ -132,15 +132,15 @@ class ControllerBase {
     }
 
     def resetToken(GrailsWebRequest request) {
-        HMacSynchronizerTokensHolder holder = request.currentRequest.getSession(false)?.getAttribute(HMacSynchronizerTokensHolder.HOLDER)
+        /*HMacSynchronizerTokensHolder holder = request.currentRequest.getSession(false)?.getAttribute(HMacSynchronizerTokensHolder.HOLDER)
         String tokenInRequest = request.params[HMacSynchronizerTokensHolder.TOKEN_KEY]
         if (!tokenInRequest) return
 
-        holder.resetToken(tokenInRequest)
+        holder.resetToken(tokenInRequest)*/
     }
 
     boolean isTokenValid(GrailsWebRequest request) {
-        HMacSynchronizerTokensHolder holder = request.currentRequest.getSession(false)?.getAttribute(HMacSynchronizerTokensHolder.HOLDER)
+        /*HMacSynchronizerTokensHolder holder = request.currentRequest.getSession(false)?.getAttribute(HMacSynchronizerTokensHolder.HOLDER)
         if (!holder) return false
 
         String tokenInRequest = request.params[HMacSynchronizerTokensHolder.TOKEN_KEY]
@@ -161,7 +161,8 @@ class ControllerBase {
         }
         catch (IllegalArgumentException) {
             return false
-        }
+        }*/
+        return true
     }
     def renderCompressed(HttpServletRequest request,HttpServletResponse response,String contentType, data){
         if(grailsApplication.config.rundeck?.ajax?.compression=='gzip'

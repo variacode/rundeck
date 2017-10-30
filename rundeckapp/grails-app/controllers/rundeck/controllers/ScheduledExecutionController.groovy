@@ -48,7 +48,8 @@ import org.apache.commons.httpclient.util.DateParseException
 import org.apache.commons.httpclient.util.DateUtil
 import org.apache.log4j.Logger
 import org.apache.log4j.MDC
-import org.codehaus.groovy.grails.web.json.JSONElement
+import org.grails.web.json.JSONElement
+import org.grails.web.json.JSONObject
 import org.quartz.CronExpression
 import org.quartz.Scheduler
 import org.rundeck.util.Toposort
@@ -59,8 +60,9 @@ import org.springframework.web.multipart.commons.CommonsMultipartFile
 import rundeck.*
 import rundeck.codecs.JobsXMLCodec
 import rundeck.codecs.JobsYAMLCodec
-import rundeck.filters.ApiRequestFilters
+//import rundeck.filters.ApiRequestFilters
 import rundeck.services.*
+import rundeck.services.services.ExecutionServiceException
 
 import javax.servlet.http.HttpServletResponse
 import java.text.SimpleDateFormat
@@ -741,7 +743,7 @@ class ScheduledExecutionController  extends ControllerBase{
                 if(result){
                     if( result instanceof Collection){
                         result.eachWithIndex { entry,i->
-                            if(entry instanceof org.codehaus.groovy.grails.web.json.JSONObject){
+                            if(entry instanceof org.grails.web.json.JSONObject){
                                 if(!entry.name){
                                     validationerrors<<"Item: ${i} has no 'name' entry"
                                     valid=false;
@@ -755,8 +757,8 @@ class ScheduledExecutionController  extends ControllerBase{
                                 validationerrors << "Item: ${i} expected string or map like {name:\"..\",value:\"..\"}"
                             }
                         }
-                    } else if (result instanceof org.codehaus.groovy.grails.web.json.JSONObject) {
-                        org.codehaus.groovy.grails.web.json.JSONObject jobject = result
+                    } else if (result instanceof JSONObject) {
+                        JSONObject jobject = result
                         result = []
                         jobject.keys().sort().each {k ->
                             result << [name: k, value: jobject.get(k)]
@@ -1190,9 +1192,9 @@ class ScheduledExecutionController  extends ControllerBase{
             return
         }
 
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V14)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V14)) {
+//            return
+//        }
 
 
         log.debug("ScheduledExecutionController: apiFlipExecutionEnabled" + params)
@@ -1242,9 +1244,9 @@ class ScheduledExecutionController  extends ControllerBase{
             return
         }
 
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V14)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V14)) {
+//            return
+//        }
 
         log.debug("ScheduledExecutionController: apiFlipScheduleEnabled" + params)
 
@@ -1486,9 +1488,9 @@ class ScheduledExecutionController  extends ControllerBase{
         }
     }
     def apiFlipExecutionEnabledBulk(ApiBulkJobDeleteRequest deleteRequest) {
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V16)){
-            return
-        }
+//        if(!apiService.requireVersion(request,response,ApiRequestFilters.V16)){
+//            return
+//        }
         if (deleteRequest.hasErrors()) {
             return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
                                                            code: 'api.error.invalid.request',
@@ -1565,9 +1567,9 @@ class ScheduledExecutionController  extends ControllerBase{
         }
     }
     def apiFlipScheduleEnabledBulk(ApiBulkJobDeleteRequest deleteRequest) {
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V16)){
-            return
-        }
+//        if(!apiService.requireVersion(request,response,ApiRequestFilters.V16)){
+//            return
+//        }
         if (deleteRequest.hasErrors()) {
             return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
                                                            code: 'api.error.invalid.request',
@@ -1843,13 +1845,13 @@ class ScheduledExecutionController  extends ControllerBase{
             }
         }
 
-        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
-            return apiService.renderErrorXml(response,[
-                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                    code: 'api.error.item.unsupported-format',
-                    args: [response.format]
-            ])
-        }
+//        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+//            return apiService.renderErrorXml(response,[
+//                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+//                    code: 'api.error.item.unsupported-format',
+//                    args: [response.format]
+//            ])
+//        }
         withFormat{
             xml{
                 return apiService.renderSuccessXml(request,response) {
@@ -2314,16 +2316,16 @@ class ScheduledExecutionController  extends ControllerBase{
         params.jobName='Temporary_Job'
         params.groupPath='adhoc'
 
-        if (runAdhocRequest.asUser && apiService.requireVersion(request,response,ApiRequestFilters.V5)) {
-            //authorize RunAs User
-            if (!frameworkService.authorizeProjectResource(authContext, AuthConstants.RESOURCE_ADHOC,
-                    AuthConstants.ACTION_RUNAS, runAdhocRequest.project)) {
-
-                def msg = g.message(code: "api.error.item.unauthorized", args: ['Run as User', 'Run', 'Adhoc'])
-                return [failed:true,error: 'unauthorized', message: msg]
-            }
-            params['user'] = runAdhocRequest.asUser
-        }
+//        if (runAdhocRequest.asUser && apiService.requireVersion(request,response,ApiRequestFilters.V5)) {
+//            //authorize RunAs User
+//            if (!frameworkService.authorizeProjectResource(authContext, AuthConstants.RESOURCE_ADHOC,
+//                    AuthConstants.ACTION_RUNAS, runAdhocRequest.project)) {
+//
+//                def msg = g.message(code: "api.error.item.unauthorized", args: ['Run as User', 'Run', 'Adhoc'])
+//                return [failed:true,error: 'unauthorized', message: msg]
+//            }
+//            params['user'] = runAdhocRequest.asUser
+//        }
         if(runAdhocRequest.exec){
             params.workflow = new Workflow(commands: [new CommandExec(adhocRemoteString: runAdhocRequest.exec, adhocExecution: true)])
         }else if(runAdhocRequest.script){
@@ -3236,9 +3238,9 @@ class ScheduledExecutionController  extends ControllerBase{
      * API: /api/14/project/NAME/jobs/import
      */
     def apiJobsImportv14(){
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
-            return
-        }
+//        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+//            return
+//        }
         return apiJobsImport()
     }
     /**
@@ -3251,28 +3253,28 @@ class ScheduledExecutionController  extends ControllerBase{
         log.debug("ScheduledExecutionController: upload " + params)
         def fileformat = params.format ?:params.fileformat ?: 'xml'
         def parseresult
-        if(request.api_version >= ApiRequestFilters.V14 && request.format=='xml'){
-            //xml input
-            parseresult = scheduledExecutionService.parseUploadedFile(request.getInputStream(), 'xml')
-        }else if(request.api_version >= ApiRequestFilters.V14 && request.format=='yaml'){
-            //yaml input
-            parseresult = scheduledExecutionService.parseUploadedFile(request.getInputStream(), 'yaml')
-        }else if (!apiService.requireParameters(params,response,['xmlBatch'])) {
-            return
-        }else if (request instanceof MultipartHttpServletRequest) {
-            def file = request.getFile("xmlBatch")
-            if (!file) {
-                return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
-                        code: 'api.error.jobs.import.missing-file', args: null])
-            }
-            parseresult = scheduledExecutionService.parseUploadedFile(file.getInputStream(), fileformat)
-        }else if (params.xmlBatch) {
-            String fileContent = params.xmlBatch
-            parseresult = scheduledExecutionService.parseUploadedFile(fileContent, fileformat)
-        }else{
-            return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
-                    code: 'api.error.jobs.import.missing-file', args: null])
-        }
+//        if(request.api_version >= ApiRequestFilters.V14 && request.format=='xml'){
+//            //xml input
+//            parseresult = scheduledExecutionService.parseUploadedFile(request.getInputStream(), 'xml')
+//        }else if(request.api_version >= ApiRequestFilters.V14 && request.format=='yaml'){
+//            //yaml input
+//            parseresult = scheduledExecutionService.parseUploadedFile(request.getInputStream(), 'yaml')
+//        }else if (!apiService.requireParameters(params,response,['xmlBatch'])) {
+//            return
+//        }else if (request instanceof MultipartHttpServletRequest) {
+//            def file = request.getFile("xmlBatch")
+//            if (!file) {
+//                return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
+//                        code: 'api.error.jobs.import.missing-file', args: null])
+//            }
+//            parseresult = scheduledExecutionService.parseUploadedFile(file.getInputStream(), fileformat)
+//        }else if (params.xmlBatch) {
+//            String fileContent = params.xmlBatch
+//            parseresult = scheduledExecutionService.parseUploadedFile(fileContent, fileformat)
+//        }else{
+//            return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
+//                    code: 'api.error.jobs.import.missing-file', args: null])
+//        }
         if (parseresult.errorCode) {
             return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
                     code: parseresult.errorCode, args: parseresult.args])
@@ -3283,26 +3285,26 @@ class ScheduledExecutionController  extends ControllerBase{
                     code: 'api.error.jobs.import.invalid', args: [fileformat,parseresult.error]])
         }
         def jobset = parseresult.jobset
-        if(request.api_version >= ApiRequestFilters.V14){
-            //require project parameter
-            if(!apiService.requireParameters(params,response, ['project'])){
-                return
-            }
-        }
-        if(request.api_version >= ApiRequestFilters.V8){
-            //v8 override project using parameter
-            if(params.project){
-                jobset*.project=params.project
-            }
-        }
+//        if(request.api_version >= ApiRequestFilters.V14){
+//            //require project parameter
+//            if(!apiService.requireParameters(params,response, ['project'])){
+//                return
+//            }
+//        }
+//        if(request.api_version >= ApiRequestFilters.V8){
+//            //v8 override project using parameter
+//            if(params.project){
+//                jobset*.project=params.project
+//            }
+//        }
         def changeinfo = [user: session.user,method:'apiJobsImport']
         //nb: loadJobs will get correct project auth context
         UserAndRolesAuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         String roleList = request.subject.getPrincipals(Group.class).collect {it.name}.join(",")
         def option = params.uuidOption
-        if (request.api_version < ApiRequestFilters.V9) {
-            option = null
-        }
+//        if (request.api_version < ApiRequestFilters.V9) {
+//            option = null
+//        }
         def loadresults = scheduledExecutionService.loadJobs(jobset,params.dupeOption, option, changeinfo, authContext)
         scheduledExecutionService.issueJobChangeEvents(loadresults.jobChangeEvents)
 
@@ -3373,10 +3375,10 @@ class ScheduledExecutionController  extends ControllerBase{
             return
         }
         //require POST for api v14
-        if (request.method == 'GET' && request.api_version >= ApiRequestFilters.V14) {
-            response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-            return
-        }
+//        if (request.method == 'GET' && request.api_version >= ApiRequestFilters.V14) {
+//            response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+//            return
+//        }
         String jobid = params.id
 
         def ScheduledExecution scheduledExecution = scheduledExecutionService.getByIDorUUID(jobid)
@@ -3436,27 +3438,27 @@ class ScheduledExecutionController  extends ControllerBase{
                 }
             }
         }
-        if(jobAsUser && apiService.requireVersion(request,response,ApiRequestFilters.V5)) {
-            // authorize RunAs User
-            if (!frameworkService.authorizeProjectJobAll(authContext, scheduledExecution, [AuthConstants.ACTION_RUNAS],
-                                                         scheduledExecution.project
-            )) {
-                return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_FORBIDDEN,
-                                                               code  : 'api.error.item.unauthorized', args: ['Run as User', 'Job ID', jobid]]
-                )
-            }
-            username = jobAsUser
-        }
+//        if(jobAsUser && apiService.requireVersion(request,response,ApiRequestFilters.V5)) {
+//            // authorize RunAs User
+//            if (!frameworkService.authorizeProjectJobAll(authContext, scheduledExecution, [AuthConstants.ACTION_RUNAS],
+//                                                         scheduledExecution.project
+//            )) {
+//                return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_FORBIDDEN,
+//                                                               code  : 'api.error.item.unauthorized', args: ['Run as User', 'Job ID', jobid]]
+//                )
+//            }
+//            username = jobAsUser
+//        }
 
         def inputOpts = [:]
 
-        if (request.api_version >= ApiRequestFilters.V18 && jobOptions && jobOptions instanceof Map) {
-            jobOptions.each { k, v ->
-                inputOpts['option.' + k] = v
-            }
-        } else if (jobArgString) {
-            inputOpts["argString"] = jobArgString
-        }
+//        if (request.api_version >= ApiRequestFilters.V18 && jobOptions && jobOptions instanceof Map) {
+//            jobOptions.each { k, v ->
+//                inputOpts['option.' + k] = v
+//            }
+//        } else if (jobArgString) {
+//            inputOpts["argString"] = jobArgString
+//        }
         if (jobLoglevel) {
             inputOpts["loglevel"] = jobLoglevel
         }
@@ -3474,26 +3476,26 @@ class ScheduledExecutionController  extends ControllerBase{
         }
 
 
-        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
-            return apiService.renderErrorXml(response,[
-                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                    code: 'api.error.item.unsupported-format',
-                    args: [response.format]
-            ])
-        }
-
-        def result
-        if (request.api_version > ApiRequestFilters.V17 && jobRunAtTime) {
-            inputOpts["runAtTime"] = jobRunAtTime
-            result = executionService.scheduleAdHocJob(scheduledExecution,
-                        authContext, username, inputOpts)
-        }
-
-        if (request.api_version <= ApiRequestFilters.V17 || !jobRunAtTime) {
-            inputOpts['executionType'] = 'user'
-            result = executionService.executeJob(scheduledExecution,
-                        authContext, username, inputOpts)
-        }
+//        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+//            return apiService.renderErrorXml(response,[
+//                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+//                    code: 'api.error.item.unsupported-format',
+//                    args: [response.format]
+//            ])
+//        }
+//
+//        def result
+//        if (request.api_version > ApiRequestFilters.V17 && jobRunAtTime) {
+//            inputOpts["runAtTime"] = jobRunAtTime
+//            result = executionService.scheduleAdHocJob(scheduledExecution,
+//                        authContext, username, inputOpts)
+//        }
+//
+//        if (request.api_version <= ApiRequestFilters.V17 || !jobRunAtTime) {
+//            inputOpts['executionType'] = 'user'
+//            result = executionService.executeJob(scheduledExecution,
+//                        authContext, username, inputOpts)
+//        }
 
         if (!result.success) {
             if (result.error == 'unauthorized') {
@@ -3531,9 +3533,9 @@ class ScheduledExecutionController  extends ControllerBase{
             return
         }
 
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V19)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V19)) {
+//            return
+//        }
 
         if (!apiService.requireParameters(params, response, ['id'])) {
             return
@@ -3697,9 +3699,9 @@ class ScheduledExecutionController  extends ControllerBase{
             return
         }
 
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V19)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V19)) {
+//            return
+//        }
 
         if (!apiService.requireParameters(params, response, ['id'])) {
             return
@@ -3729,9 +3731,9 @@ class ScheduledExecutionController  extends ControllerBase{
             return
         }
 
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V19)) {
-            return
-        }
+//        if (!apiService.requireVersion(request, response, ApiRequestFilters.V19)) {
+//            return
+//        }
 
         if (!apiService.requireParameters(params, response, ['id'])) {
             return
@@ -3848,9 +3850,9 @@ class ScheduledExecutionController  extends ControllerBase{
      * API: run simple exec: /api/14/project/PROJECT/run/command
      */
     def apiRunCommandv14(ApiRunAdhocRequest runAdhocRequest){
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
-            return
-        }
+//        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+//            return
+//        }
         return apiRunCommand(runAdhocRequest)
     }
     /**
@@ -3908,9 +3910,9 @@ class ScheduledExecutionController  extends ControllerBase{
      * API: run script: /api/14/project/PROJECT/run/script
      */
     def apiRunScriptv14(ApiRunAdhocRequest runAdhocRequest){
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
-            return
-        }
+//        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+//            return
+//        }
         return apiRunScript(runAdhocRequest)
     }
     /**
@@ -4007,13 +4009,13 @@ class ScheduledExecutionController  extends ControllerBase{
                         code: 'api.error.execution.failed', args: [errors.join(", ")]])
             }
         } else {
-            if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
-                return apiService.renderErrorFormat(response,[
-                        status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                        code: 'api.error.item.unsupported-format',
-                        args: [response.format]
-                ])
-            }
+//            if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+//                return apiService.renderErrorFormat(response,[
+//                        status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+//                        code: 'api.error.item.unsupported-format',
+//                        args: [response.format]
+//                ])
+//            }
             withFormat{
                 xml{
 
@@ -4048,9 +4050,9 @@ class ScheduledExecutionController  extends ControllerBase{
      * API: run script: /api/14/project/PROJECT/run/url
      */
     def apiRunScriptUrlv14 (ApiRunAdhocRequest runAdhocRequest){
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
-            return
-        }
+//        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+//            return
+//        }
         return apiRunScriptUrl(runAdhocRequest)
     }
 
@@ -4061,9 +4063,9 @@ class ScheduledExecutionController  extends ControllerBase{
         if (!apiService.requireApi(request, response)) {
             return
         }
-        if (!apiService.requireVersion(request,response,ApiRequestFilters.V4)) {
-            return
-        }
+//        if (!apiService.requireVersion(request,response,ApiRequestFilters.V4)) {
+//            return
+//        }
         if(null==runAdhocRequest.project || null==runAdhocRequest.url) {
             if (!apiService.requireParameters(params, response, ['project', 'scriptURL'])) {
                 return
@@ -4151,13 +4153,13 @@ class ScheduledExecutionController  extends ControllerBase{
             )
         }
 
-        if (apiRequest && request.api_version < ApiRequestFilters.V14 && !(response.format in ['all', 'xml'])) {
-            return apiService.renderErrorFormat(response,[
-                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                    code: 'api.error.item.unsupported-format',
-                    args: [response.format]
-            ])
-        }
+//        if (apiRequest && request.api_version < ApiRequestFilters.V14 && !(response.format in ['all', 'xml'])) {
+//            return apiService.renderErrorFormat(response,[
+//                    status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+//                    code: 'api.error.item.unsupported-format',
+//                    args: [response.format]
+//            ])
+//        }
 
         def result = executionService.queryJobExecutions(
                 scheduledExecution,
@@ -4187,10 +4189,10 @@ class ScheduledExecutionController  extends ControllerBase{
      * API: /api/14/scheduler/takeover
      */
     def apiJobClusterTakeoverSchedule (){
-        if (!apiService.requireVersion(request,response,ApiRequestFilters.V14)) {
-            return
-        }
-        def api17 = request.api_version >= ApiRequestFilters.V17
+//        if (!apiService.requireVersion(request,response,ApiRequestFilters.V14)) {
+//            return
+//        }
+//        def api17 = request.api_version >= ApiRequestFilters.V17
 
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         //test valid project
@@ -4219,7 +4221,7 @@ class ScheduledExecutionController  extends ControllerBase{
                     return apiService.renderSuccessJson(response) {
                         delegate.'message'=("No action performed, cluster mode is not enabled.")
                         success=true
-                        apiversion=ApiRequestFilters.API_CURRENT_VERSION
+//                        apiversion=ApiRequestFilters.API_CURRENT_VERSION
                         self=[server:[uuid:frameworkService.getServerUUID()]]
                     }
                 }
@@ -4269,9 +4271,9 @@ class ScheduledExecutionController  extends ControllerBase{
                     permalink:apiService.guiHrefForJob(entry.value.job),
 
             ]
-            if(api17){
-                dat['previous-owner']=entry.value.previous
-            }
+//            if(api17){
+//                dat['previous-owner']=entry.value.previous
+//            }
             dat
         }
         def jobLink={ delegate, entry->
@@ -4322,7 +4324,7 @@ class ScheduledExecutionController  extends ControllerBase{
                 }
                 render(contentType: "application/json",text: [
                     success:true,
-                    apiversion:ApiRequestFilters.API_CURRENT_VERSION,
+//                    apiversion:ApiRequestFilters.API_CURRENT_VERSION,
                     message: successMessage,
                     self:[server:[uuid:frameworkService.getServerUUID()]],
                     takeoverSchedule:datamap+[

@@ -1,0 +1,25 @@
+
+dataSource:
+  dbCreate: update
+  url: "jdbc:h2:file:/home/parth/IdeaProjects/rundeck/test/server/data/grailsdb;MVCC=true"
+grails:
+  app:
+    context: /
+  serverURL: "http://parth-VirtualBox:4440"
+loglevel:
+  default: INFO
+rdeck:
+  base: /home/parth/IdeaProjects/rundeck/test
+rss:
+  enabled: false
+rundeck:
+  security:
+    authorization:
+      preauthenticated:
+        attributeName: REMOTE_USER_GROUPS
+        delimiter: ","
+        enabled: false
+        redirectLogout: false
+        redirectUrl: /oauth2/sign_in
+        userNameHeader: X-Forwarded-Uuid
+        userRolesHeader: X-Forwarded-Roles

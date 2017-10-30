@@ -22,6 +22,7 @@ import com.dtolabs.rundeck.core.authorization.UserAndRoles
 import com.dtolabs.rundeck.core.authorization.UserAndRolesAuthContext
 import com.dtolabs.rundeck.core.common.Framework
 import com.dtolabs.rundeck.core.common.IRundeckProjectConfig
+import com.dtolabs.rundeck.core.execution.service.ExecutionServiceException
 import com.dtolabs.rundeck.core.execution.workflow.WorkflowStrategy
 import com.dtolabs.rundeck.core.jobs.JobReference
 import com.dtolabs.rundeck.core.jobs.JobRevReference
@@ -1239,7 +1240,7 @@ class ScheduledExecutionService implements ApplicationContextAware, Initializing
                 jobSchedulerService.scheduleJobNow(ident.jobname, ident.groupname, jobDetail)
             }
         } catch (JobScheduleFailure exc) {
-            throw new ExecutionServiceException("Could not schedule job: " + exc.message, exc)
+                throw new ExecutionServiceException("Could not schedule job: " + exc.message, exc)
         }
 
         return e.id

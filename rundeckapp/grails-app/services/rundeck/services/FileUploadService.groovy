@@ -3,7 +3,7 @@ package rundeck.services
 import com.dtolabs.rundeck.core.execution.workflow.StepExecutionContext
 import com.dtolabs.rundeck.core.plugins.configuration.Validator
 import com.dtolabs.rundeck.plugins.file.FileUploadPlugin
-import grails.events.Listener
+//import grails.events.Listener
 import grails.transaction.Transactional
 import org.rundeck.util.SHAInputStream
 import org.rundeck.util.SHAOutputStream
@@ -518,7 +518,7 @@ class FileUploadService {
      * @param evt
      * @return
      */
-    @Listener
+    /*@Listener
     def executionBeforeStart(ExecutionPrepareEvent evt) {
         if (evt.job) {
             //handle uploaded files
@@ -533,7 +533,7 @@ class FileUploadService {
             return evt.context
         }
         null
-    }
+    }*/
 
     /**
      * Before adhoc execution is scheduled in scheduler,
@@ -552,7 +552,7 @@ class FileUploadService {
      * Remove temp files
      * @param event
      */
-    @Listener
+//    @Listener
     def executionComplete(ExecutionCompleteEvent e) {
         findRecords(e.execution, RECORD_TYPE_OPTION_INPUT)?.each {
             changeFileState(it, FileUploadPlugin.ExternalState.Used)
