@@ -16,8 +16,9 @@
 
 package com.dtolabs.rundeck.server.filters;
 
+import grails.config.Config;
+import grails.core.GrailsApplication;
 import org.apache.log4j.Logger;
-import org.codehaus.groovy.grails.commons.GrailsApplication;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
@@ -53,12 +54,13 @@ public class AuthFilter implements Filter {
             throw new IllegalStateException("grailsApplication not found in context");
         }
 
-        Map map = grailsApplication.getFlatConfig();
-        Object o = map.get("rundeck.security.authorization.preauthenticated.enabled");
+//        Map map = grailsApplication.getFlatConfig();
+        Config config = grailsApplication.getConfig();
+        Object o = config.get("rundeck.security.authorization.preauthenticated.enabled");
         enabled = Boolean.parseBoolean(o.toString());
-        rolesAttribute = (String) map.get("rundeck.security.authorization.preauthenticated.attributeName");
-        rolesHeader = (String) map.get("rundeck.security.authorization.preauthenticated.userRolesHeader");
-        userNameHeader = (String) map.get("rundeck.security.authorization.preauthenticated.userNameHeader");
+        rolesAttribute = (String) config.get("rundeck.security.authorization.preauthenticated.attributeName");
+        rolesHeader = (String) config.get("rundeck.security.authorization.preauthenticated.userRolesHeader");
+        userNameHeader = (String) config.get("rundeck.security.authorization.preauthenticated.userNameHeader");
 
 
     }

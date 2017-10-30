@@ -34,6 +34,18 @@ endpoints:
 
 ---
 grails:
+    project:
+        target:
+            level: 1.8
+        source:
+            level: 1.8
+        dependency:
+            resolver: "maven"
+    plugin:
+        location:
+            webrealms: "webrealms"
+            metricsweb: "metricsweb"
+            authfilter: "authfilter"
     mime:
         disable:
             accept:

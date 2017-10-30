@@ -30,7 +30,7 @@ import grails.validation.Validateable
 /**
  * Extends BaseNodeFilters to add filter params used in GUI filtering
  */
-@Validateable
+//@Validateable
 public class ExtNodeFilters extends BaseNodeFilters{
 
     String project
