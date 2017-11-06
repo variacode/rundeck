@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rundeck.filters
+package rundeck.filters.filters
 
 import org.rundeck.web.infosec.AuthorizationRoleSource
 import org.springframework.context.ApplicationContext
@@ -32,7 +32,6 @@ import rundeck.services.FrameworkService
 
 import javax.servlet.ServletContext
 import javax.servlet.http.HttpServletRequest
-import java.time.Clock
 
 /*
 * AuthorizationFilters.groovy

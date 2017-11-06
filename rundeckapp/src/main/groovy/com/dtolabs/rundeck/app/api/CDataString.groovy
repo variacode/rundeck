@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-package rundeck.filters
+package com.dtolabs.rundeck.app.api
 
-class ZZ_TimerFilters {
-
-    def dependsOn = [AA_TimerFilters]
-
-    def filters = {
-        all(controller:'user', action:'logout',invert:true) {
-            after = {
-                AA_TimerFilters.afterRequest(request,response,session)
-            }
-        }
+/**
+ * Wrapper for a string that is marshalled wrappedin CDATA to preserve whitespace
+ */
+class CDataString {
+    String value
+    static CDataString from(String value) {
+        return new CDataString(value: value)
     }
-    
 }
