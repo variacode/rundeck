@@ -109,9 +109,12 @@ class WorkflowEngineOperationsProcessor<DAT, RES extends WorkflowSystem.Operatio
                     //no changes within sleep time, try again
                     continue;
                 }
+                DAT inputData = null != sharedData ? sharedData.produceNext() : null;
 
                 //handle state changes
                 processStateChanges(changes);
+
+                //TODO put inputData.getData().get(ContextView.global) in workflowEngine.getState().updateState(...);
 
                 if (workflowEngine.isWorkflowEndState(workflowEngine.getState())) {
                     workflowEngine.event(WorkflowSystemEventType.WorkflowEndState, "Workflow end state reached.");
