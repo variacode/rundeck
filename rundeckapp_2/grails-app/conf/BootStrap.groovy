@@ -27,7 +27,7 @@ import com.dtolabs.utils.Streams
 import grails.util.Environment
 import org.codehaus.groovy.grails.plugins.web.filters.FilterConfig
 import org.codehaus.groovy.grails.plugins.web.filters.FilterToHandlerAdapter
-import org.grails.plugins.metricsweb.CallableGauge
+import metricsweb.CallableGauge
 import org.quartz.Scheduler
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.web.context.support.WebApplicationContextUtils

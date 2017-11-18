@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rundeck.filters
+package rundeck.filters.filters
 
 import com.dtolabs.rundeck.core.authorization.AuthContext
 import com.dtolabs.rundeck.core.authorization.AuthorizationUtil

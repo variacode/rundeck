@@ -57,7 +57,7 @@ if(System.properties['disable.grails.central']) {
 }
 
 grails.plugin.location.webrealms = 'webrealms'
-grails.plugin.location.metricsweb = 'metricsweb'
+grails.plugin.location.metricsweb = 'rundeckapp/metricsweb'
 grails.plugin.location.authfilter = 'authfilter'
 grails.servlet.version = "3.0"
 grails.project.dependency.resolution = {

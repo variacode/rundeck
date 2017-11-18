@@ -16,7 +16,7 @@ package rundeckapp
  * limitations under the License.
  */
 
-//import rundeck.filters.ApiRequestFilters
+//import ApiRequestFilters
 
 class UrlMappings {
     static mappings = {
@@ -25,7 +25,8 @@ class UrlMappings {
                 // apply constraints here
             }
         }
-        "/"(controller: 'menu', action: 'index')
+//        "/"(controller: 'menu', action: 'index')
+        "/"(controller: 'user', action: 'login')
         /*******
          * API url paths, v1
          */
@@ -229,7 +230,7 @@ class UrlMappings {
         "/project/$project/home"(controller: 'menu', action: 'projectHome')
         "/project/$project/nodes/"(controller: 'framework', action: 'nodes')
         "/project/$project/run/"(controller: 'framework', action: 'nodes')
-        "/project/$project/scm/$integration?/$action?"(controller: 'scm')
+        "/project/$pruser/oject/scm/$integration?/$action?"(controller: 'scm')
         "/project/$project/command/run"(controller: 'framework',action: 'adhoc')
         "/project/$project/activity"(controller: 'reports', action: 'index')
         "/project/$project/history"(controller: 'reports', action: 'index')

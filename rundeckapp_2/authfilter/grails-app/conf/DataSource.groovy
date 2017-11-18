@@ -25,7 +25,7 @@ hibernate {
  * limitations under the License.
  */
 
-// environment specific settings
+// environment specific __settings
 environments {
     development {
         dataSource {

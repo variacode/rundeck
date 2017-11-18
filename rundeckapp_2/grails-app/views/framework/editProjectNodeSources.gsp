@@ -78,7 +78,7 @@
                 <div class="list-group">
                     <g:hiddenField name="project" value="${project}"/>
 
-                    <%--Render project configuration settings for 'resourceModelSource'--%>
+                    <%--Render project configuration __settings for 'resourceModelSource'--%>
                     <g:render template="projectConfigurableForm"
                               model="${[extraConfigSet: extraConfig?.values(),
                                         category      : 'resourceModelSource',

@@ -23,7 +23,7 @@ import com.dtolabs.rundeck.core.authorization.AuthorizationUtil
 import com.dtolabs.rundeck.core.common.Framework
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import grails.converters.JSON
-import org.grails.plugins.metricsweb.MetricService
+import metricsweb.MetricService
 import rundeck.Execution
 import rundeck.ScheduledExecution
 import rundeck.services.ApiService
@@ -38,7 +38,7 @@ import com.dtolabs.rundeck.app.support.ReportQuery
 import rundeck.User
 import rundeck.ReportFilter
 import rundeck.services.FrameworkService
-import rundeck.filters.ApiRequestFilters
+import rundeck.filters.filters.ApiRequestFilters
 
 class ReportsController extends ControllerBase{
     def reportService

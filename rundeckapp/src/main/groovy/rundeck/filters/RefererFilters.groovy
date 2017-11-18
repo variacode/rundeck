@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rundeck.filters.filters
+package rundeck.filters
 
 import javax.servlet.http.HttpServletResponse
 import java.util.regex.Pattern

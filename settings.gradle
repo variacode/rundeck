@@ -35,3 +35,13 @@ include 'core',
 	'rundeck-launcher',
 	'rundeck-launcher:launcher',
 	'rundeck-launcher:rundeck-jetty-server'
+
+include 'rundeckapp:metricsweb'
+findProject(':rundeckapp:metricsweb')?.name = 'metricsweb'
+include 'rundeckapp:authfilter'
+findProject(':rundeckapp:authfilter')?.name = 'authfilter'
+include 'rundeckapp:metricsweb'
+findProject(':rundeckapp:metricsweb')?.name = 'metricsweb'
+include 'rundeckapp:Webrealms'
+findProject(':rundeckapp:Webrealms')?.name = 'Webrealms'
+

@@ -23,7 +23,7 @@ import grails.converters.JSON
 import org.rundeck.util.Sizes
 import rundeck.AuthToken
 import rundeck.User
-//import rundeck.filters.ApiRequestFilters
+//import ApiRequestFilters
 import rundeck.services.FrameworkService
 import rundeck.services.UserService
 
@@ -70,9 +70,12 @@ class UserController extends ControllerBase{
     }
 
     def login = {
+        println("-------------------inside the user controller---------------------")
         if (session.user) {
             redirect(controller:'menu', action:'index')
         }
+
+//        render("Hello world")
     }
 
     def handleLogin = {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.grails.plugins.metricsweb
+package metricsweb
 
 import com.codahale.metrics.Gauge
 

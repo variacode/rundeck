@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rundeck.filters
+package rundeck.filters.filters
 
 import org.codehaus.groovy.grails.web.servlet.mvc.SynchronizerTokensHolder
 

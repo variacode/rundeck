@@ -21,7 +21,7 @@ import com.dtolabs.rundeck.app.api.marshall.CustomJsonMarshaller
 import com.dtolabs.rundeck.app.api.marshall.CustomXmlMarshaller
 import grails.converters.JSON
 import grails.converters.XML
-//import rundeck.filters.ApiRequestFilters
+//import ApiRequestFilters
 
 import javax.annotation.PostConstruct
 

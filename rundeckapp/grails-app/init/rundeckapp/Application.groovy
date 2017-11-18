@@ -4,6 +4,7 @@ import grails.boot.GrailsApp
 import grails.boot.config.GrailsAutoConfiguration
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean
 import org.springframework.context.EnvironmentAware
+import org.springframework.context.annotation.Bean
 import org.springframework.core.env.Environment
 import org.springframework.core.env.MapPropertySource
 import org.springframework.core.env.PropertiesPropertySource
@@ -18,6 +19,7 @@ class Application extends GrailsAutoConfiguration implements EnvironmentAware {
     @Override
     void setEnvironment(Environment environment) {
         def configBase = System.getenv('RUNDECK_CONFIG_LOCATION') ?: System.getProperty('rundeck.config.location') ?: "/home/parth/git/rundeck/rundeckapp/rundeck-config"
+
         boolean configLoaded = false
 
         def ymlConfig = new File(configBase + '.yml')
@@ -46,4 +48,9 @@ class Application extends GrailsAutoConfiguration implements EnvironmentAware {
             println "External config could not be found, checked ${ymlConfig.absolutePath} and ${groovyConfig.absolutePath}"
         }
     }
+
+    /*@Bean(initMethod = "init")
+    public void initMethodToCheckExecution() {
+        println '----------------------yes it gets executed first--------------------'
+    }*/
 }

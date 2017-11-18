@@ -22,8 +22,8 @@ import grails.validation.Validateable
  * @author greg
  * @since 9/19/17
  */
-@Validateable
-class AclFile {
+//@Validateable
+class AclFile implements Validateable{
     String name
     String id
 

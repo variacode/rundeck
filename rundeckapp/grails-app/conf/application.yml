@@ -46,6 +46,9 @@ grails:
             webrealms: "webrealms"
             metricsweb: "metricsweb"
             authfilter: "authfilter"
+    plugins:
+        twitterbootstrap:
+            fixtaglib: true
     mime:
         disable:
             accept:
@@ -146,3 +149,9 @@ environments:
                 testOnReturn: false
                 jdbcInterceptors: ConnectionState
                 defaultTransactionIsolation: 2 # TRANSACTION_READ_COMMITTED
+rundeck:
+    metrics:
+        enabled: true
+        jmxEnabled: true
+        requestFilterEnabled: true
+        servletUrlPattern: '/metrics/*'

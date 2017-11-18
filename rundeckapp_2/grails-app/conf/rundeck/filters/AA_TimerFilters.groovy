@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rundeck.filters
+package rundeck.filters.filters
 
 import com.codahale.metrics.MetricRegistry
 import org.apache.log4j.Logger

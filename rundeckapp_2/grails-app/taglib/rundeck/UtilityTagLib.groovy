@@ -22,7 +22,7 @@ import grails.util.Environment
 import org.rundeck.web.infosec.HMacSynchronizerTokensHolder
 import org.rundeck.web.infosec.HMacSynchronizerTokensManager
 import org.codehaus.groovy.grails.web.servlet.mvc.SynchronizerTokensHolder
-import rundeck.filters.FormTokenFilters
+import rundeck.filters.filters.FormTokenFilters
 import rundeck.services.FrameworkService
 
 import java.text.MessageFormat

@@ -42,7 +42,7 @@ import com.dtolabs.rundeck.server.plugins.services.StorageConverterPluginProvide
 import com.dtolabs.rundeck.server.plugins.services.StoragePluginProviderService
 import grails.converters.JSON
 import groovy.xml.MarkupBuilder
-import org.grails.plugins.metricsweb.MetricService
+import metricsweb.MetricService
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.web.multipart.MultipartHttpServletRequest
@@ -53,7 +53,7 @@ import rundeck.ScheduledExecutionFilter
 import rundeck.User
 import rundeck.codecs.JobsXMLCodec
 import rundeck.codecs.JobsYAMLCodec
-import rundeck.filters.ApiRequestFilters
+import rundeck.filters.filters.ApiRequestFilters
 import rundeck.services.ApiService
 import rundeck.services.AuthorizationService
 import rundeck.services.ExecutionService
@@ -1903,7 +1903,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
     }
 
     def plugins(){
-        //list plugins and config settings for project/framework props
+        //list plugins and config __settings for project/framework props
 
         Framework framework = frameworkService.getRundeckFramework()
 

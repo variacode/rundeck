@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rundeck.filters.filters
+package rundeck.filters
 
 import org.rundeck.web.infosec.AuthorizationRoleSource
 import org.springframework.context.ApplicationContext
@@ -47,11 +47,15 @@ public class AuthorizationFilters implements ApplicationContextAware{
     def dependsOn = [ApiRequestFilters]
 
     def filters = {
+
         /**
          * Set the session.user to logged in user only when not performing user login/logout 
          */
         loginCheck(controller: 'user', action: '(logout|login|error|loggedout)', invert: true) {
             before = {
+                println 'inside the authorization filter'
+                println request
+
                 if (request.api_version && request.remoteUser && !(grailsApplication.config.rundeck?.security?.apiCookieAccess?.enabled in ['true',true])){
                     //disallow api access via normal login
                     request.invalidApiAuthentication=true

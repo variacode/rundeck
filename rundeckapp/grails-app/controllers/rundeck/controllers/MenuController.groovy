@@ -42,7 +42,7 @@ import com.dtolabs.rundeck.server.plugins.services.StorageConverterPluginProvide
 import com.dtolabs.rundeck.server.plugins.services.StoragePluginProviderService
 import grails.converters.JSON
 import groovy.xml.MarkupBuilder
-import org.grails.plugins.metricsweb.MetricService
+import metricsweb.MetricService
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.web.multipart.MultipartHttpServletRequest
@@ -82,7 +82,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
     StoragePluginProviderService storagePluginProviderService
     StorageConverterPluginProviderService storageConverterPluginProviderService
     PluginService pluginService
-    MetricService metricService
+    MetricService metricServic
 
     def configurationService
     ScmService scmService
@@ -221,6 +221,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
          * redirect to configured start page, or default page
          */
 
+        println params
         if (!params.project) {
             return redirect(controller: 'menu', action: 'home')
         }
@@ -2032,11 +2033,12 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
     def home() {
         //first-run html info
         def isFirstRun=false
-
+        println 'inside the home '
         if(configurationService.getBoolean("startup.detectFirstRun",true) &&
                 frameworkService.rundeckFramework.hasProperty('framework.var.dir')) {
+            println '------------------------debug log : ' + frameworkService.rundeckFramework.hasProperty('framework.var.dir')
             def vardir = frameworkService.rundeckFramework.getProperty('framework.var.dir')
-            def vers = grailsApplication.metadata['build.ident'].replaceAll('\\s+\\(.+\\)$','')
+            def vers = grailsApplication.config.getProperty('build.ident').replaceAll('\\s+\\(.+\\)$','')
             def file = new File(vardir, ".first-run-${vers}")
             if(!file.exists()){
                 isFirstRun=true

@@ -29,7 +29,7 @@ import com.dtolabs.rundeck.core.utils.ThreadBoundOutputStream
 import com.dtolabs.rundeck.execution.JobExecutionItem
 import com.dtolabs.rundeck.execution.JobRefCommand
 import grails.test.mixin.*
-import org.grails.plugins.metricsweb.MetricService
+import metricsweb.MetricService
 import org.junit.*
 import rundeck.CommandExec
 import rundeck.JobExec

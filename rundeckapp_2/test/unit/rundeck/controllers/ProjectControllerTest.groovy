@@ -34,7 +34,7 @@ import org.junit.Before
 import org.junit.Test
 import org.springframework.context.MessageSource
 
-import rundeck.filters.ApiRequestFilters
+import rundeck.filters.filters.ApiRequestFilters
 import rundeck.services.ApiService
 import rundeck.services.FrameworkService
 import rundeck.services.ProjectService

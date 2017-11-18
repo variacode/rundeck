@@ -23,7 +23,7 @@ import grails.converters.JSON
 import org.rundeck.util.Sizes
 import rundeck.AuthToken
 import rundeck.User
-import rundeck.filters.ApiRequestFilters
+import rundeck.filters.filters.ApiRequestFilters
 import rundeck.services.FrameworkService
 import rundeck.services.UserService
 

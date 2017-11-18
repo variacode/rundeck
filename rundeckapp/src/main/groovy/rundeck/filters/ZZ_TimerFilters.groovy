@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rundeck.filters.filters
+package rundeck.filters
 
 class ZZ_TimerFilters {
 

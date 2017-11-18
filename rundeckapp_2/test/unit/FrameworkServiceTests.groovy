@@ -19,7 +19,7 @@ import com.dtolabs.rundeck.core.authorization.AuthContext
 import com.dtolabs.rundeck.core.authorization.Decision
 import com.dtolabs.rundeck.core.authorization.Explanation
 import grails.test.mixin.TestFor
-import org.grails.plugins.metricsweb.MetricService
+import metricsweb.MetricService
 import rundeck.ScheduledExecution
 import rundeck.services.FrameworkService
 

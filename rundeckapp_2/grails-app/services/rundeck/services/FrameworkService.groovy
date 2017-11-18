@@ -1243,7 +1243,7 @@ class FrameworkService implements ApplicationContextAware {
                 }
                 def projvalues = Validator.performMapping(input, mapping, true)
                 projProps.putAll(projvalues)
-                //remove all previous settings
+                //remove all previous __settings
                 removePrefixes.addAll(mapping.values())
             }
             extraConfig[k] = beanData

@@ -23,8 +23,8 @@ import org.springframework.web.multipart.commons.CommonsMultipartFile
  * @author greg
  * @since 9/15/17
  */
-@Validateable
-class SaveSysAclFile extends SysAclFile {
+//@Validateable
+class SaveSysAclFile extends SysAclFile implements Validateable {
     Boolean create
     Boolean upload
     Boolean overwrite

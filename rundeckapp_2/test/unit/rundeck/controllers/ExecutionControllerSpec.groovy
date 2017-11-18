@@ -35,7 +35,7 @@ import rundeck.UtilityTagLib
 import rundeck.codecs.AnsiColorCodec
 import rundeck.codecs.HTMLElementCodec
 import rundeck.codecs.URIComponentCodec
-import rundeck.filters.ApiRequestFilters
+import rundeck.filters.filters.ApiRequestFilters
 import rundeck.services.ApiService
 import rundeck.services.ApiServiceSpec
 import rundeck.services.ConfigurationService

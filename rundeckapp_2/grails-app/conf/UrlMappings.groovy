@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import rundeck.filters.ApiRequestFilters
+import rundeck.filters.filters.ApiRequestFilters
 
 class UrlMappings {
     static mappings = {

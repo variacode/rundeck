@@ -238,7 +238,7 @@ grails.databinding.trimStrings=false
 
 rundeck.executionMode='active'
 
-// GSP settings
+// GSP __settings
 grails {
     views {
         gsp {
