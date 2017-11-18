@@ -45,7 +45,7 @@ class AuthorizationInterceptor {
         println '-----------------------grailsApplication.config::::' +grailsApplication.config.getProperty("rundeck.security.apiCookieAccess.enabled")
 
         
-        if (controllerName == "user" && actionName == "login") {
+        if ((controllerName == "user" && (actionName == "login" || actionName == "handleLogin")) || controllerName == "static" || controllerName == "ico") {
             println '----------------inside the controller user and login screen condition---------------'
             return true
         }

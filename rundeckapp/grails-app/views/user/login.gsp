@@ -29,7 +29,7 @@
     <link rel="favicon" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
     <link rel="shortcut icon" href="${g.resource(dir: 'images', file: 'favicon.ico')}"/>
     <link rel="apple-touch-icon-precomposed" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
-    <asset:stylesheet href="rundeck.css"/>
+    <asset:stylesheet href="rundeck-temp.css"/>
     <!--[if lt IE 9]>
     <g:javascript library="respond.min"/>
     <![endif]-->
@@ -58,8 +58,8 @@
 <div class="col-sm-4 col-sm-push-4">
     <div class="panel panel-primary ">
         <div class="panel-body">
-        <form action="j_security_check" method="post" class="form " role="form">
-
+        %{--<form action="j_security_check" method="post" class="form " role="form">--}%
+        <form action="${createLink(controller:"user", action:"handleLogin") }" method="post" class="form" role="form">
             <g:set var="loginhtml" value="${grailsApplication.config.rundeck?.gui?.login?.welcomeHtml ?: ''}"/>
             <g:if test="${loginhtml}">
             <div class="row">

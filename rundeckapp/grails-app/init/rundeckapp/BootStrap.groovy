@@ -68,10 +68,14 @@ class BootStrap {
     }
 
     def init = { ServletContext servletContext ->
+
         //setup profiler logging
         if(!(grailsApplication.config?.grails?.profiler?.disable)) {
             //re-enable log output for profiler info, which is disabled by miniprofiler
-            grailsApplication.mainContext.profilerLog.appenderNames = ["loggingAppender", 'miniProfilerAppender']
+            println '--------------grailsApplication.mainContext: ' + grailsApplication.mainContext
+            println '--------------grailsApplication.mainContext.profilerLog: ' + grailsApplication.mainContext.profilerLog
+
+//            grailsApplication.mainContext.profilerLog.appenderNames = ["loggingAppender", 'miniProfilerAppender']
         }
         long bstart=System.currentTimeMillis()
         apiMarshallerRegistrar.registerApiMarshallers()
@@ -387,11 +391,11 @@ class BootStrap {
                 }
             } else {
                 log.debug("executionService.cleanupRunningJobs: starting asynchronously")
-                executionService.cleanupRunningJobsAsync(
+                /*executionService.cleanupRunningJobsAsync(
                         clusterMode ? serverNodeUUID : null,
                         cleanupStatus,
                         new Date()
-                )
+                )*/
             }
 
             if (clusterMode && configurationService.getBoolean(
@@ -414,7 +418,7 @@ class BootStrap {
                     }
                 } else {
                     log.debug("scheduledExecutionService.rescheduleJobs: starting asynchronously")
-                    scheduledExecutionService.rescheduleJobsAsync(clusterMode ? serverNodeUUID : null)
+//                    scheduledExecutionService.rescheduleJobsAsync(clusterMode ? serverNodeUUID : null)
                 }
             }
 
@@ -425,11 +429,11 @@ class BootStrap {
                 }
             } else if ('async' == resumeMode) {
                 log.debug("logFileStorageService.resumeIncompleteLogStorage: resuming asynchronously")
-                logFileStorageService.resumeIncompleteLogStorageAsync(clusterMode ? serverNodeUUID : null)
+//                logFileStorageService.resumeIncompleteLogStorageAsync(clusterMode ? serverNodeUUID : null)
             }else{
                 log.debug("logFileStorageService.resumeIncompleteLogStorage: skipping per configuration")
             }
-            fileUploadService.onBootstrap()
+//            fileUploadService.onBootstrap()
         }
         log.info("Rundeck startup finished in ${System.currentTimeMillis()-bstart}ms")
     }

@@ -16,17 +16,21 @@
 
 package rundeck.controllers
 
+import com.dtolabs.rundeck.core.authentication.Group
+import com.dtolabs.rundeck.core.authentication.Username
 import com.dtolabs.rundeck.core.authorization.AuthContext
 import com.dtolabs.rundeck.core.authorization.UserAndRolesAuthContext
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import grails.converters.JSON
 import org.rundeck.util.Sizes
+import org.rundeck.web.infosec.AuthorizationRoleSource
 import rundeck.AuthToken
 import rundeck.User
 //import ApiRequestFilters
 import rundeck.services.FrameworkService
 import rundeck.services.UserService
 
+import javax.security.auth.Subject
 import javax.servlet.http.HttpServletResponse
 
 class UserController extends ControllerBase{
@@ -79,6 +83,38 @@ class UserController extends ControllerBase{
     }
 
     def handleLogin = {
+        println 'inside the handleLogin'
+        //temporary code to pass through authentication
+
+        session.user = request.remoteUser
+
+        Subject subject= new Subject();
+        subject.principals << new Username(params.j_username)
+
+        //find AuthorizationRoleSource instances
+        Map<String,AuthorizationRoleSource> type = applicationContext.getBeansOfType(AuthorizationRoleSource)
+        def roleset = new HashSet<String>()
+        type.each {name,AuthorizationRoleSource source->
+            if(source.enabled) {
+                def roles = source.getUserRoles(params.j_username, request)
+                if(roles){
+                    roleset.addAll(roles)
+                    log.debug("Accepting user role list from bean ${name} for ${params.j_username}: ${roles}")
+                }else{
+                    log.debug("Empty role list from bean ${name} for ${params.j_username}")
+                }
+            }else {
+                log.debug("Role source not enabled, bean ${name}")
+            }
+        }
+        subject.principals.addAll(roleset.collect{new Group(it)})
+
+
+        request.subject = subject
+        session.subject = subject
+        params.login = params.j_username
+        //end
+
         // Simple pass threw for now!
         session.user = params.login
         redirect(controller:'menu', action:'index')

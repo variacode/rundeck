@@ -809,19 +809,29 @@ class UtilityTagLib{
         }
     }
     def helpLinkParams={attrs,body->
-        def medium = "${grailsApplication.metadata['app.version']} ${System.getProperty('os.name')} java ${System.getProperty('java.version')}"
+        def medium = grailsApplication.metadata.getApplicationVersion() + " " + System.getProperty('os.name') +" java "+ System.getProperty('java.version')
+        println '-------------medium: ' + medium + ":::: " + medium.class
         def campaign = attrs.campaign?:'helplink'
         def sourceName = g.message(code:'main.app.id',default: 'rundeckapp')
         def helpParams = [utm_source: sourceName, utm_medium: medium, utm_campaign: campaign, utm_content: (controllerName + '/' + actionName)]
+        println '-------------helpParams: ' + helpParams
         return genUrlParam(helpParams)
     }
 
     def String genUrlParam(Map<String, Serializable> params) {
-        params.collect { k, v -> k.encodeAsURIComponent() + '=' + v.encodeAsURIComponent() }.join('&')
+        println '----------------params: ' + params
+        params.collect { k, v ->
+            println '=============k:' + k + ":" + k.class
+            println '=============v:' + v + ":" + v.class
+//            k.encodeAsURIComponent() + '=' + v.encodeAsURIComponent()
+            URLEncoder.encode(k) + "=" + URLEncoder.encode(v)
+        }.join('&')
+//        println '------after that'
     }
     def helpLinkUrl={attrs,body->
         def path=''
         def fragment=''
+        println '-----------path: ' + attrs
         if(attrs.path){
             path=attrs.path
             if(!path.startsWith('/')){
@@ -833,13 +843,15 @@ class UtilityTagLib{
                 fragment='#'+split[1]
             }
         }
-        def rdversion = grailsApplication.metadata['app.version']
+//        def rdversion = grailsApplication.metadata['app.version']
+        def rdversion = grailsApplication.metadata.getApplicationVersion()
         def helpBase='http://rundeck.org/' +( rdversion?.contains('SNAPSHOT')?'docs':rdversion)
         def helpUrl
         if(grailsApplication.config.rundeck?.gui?.helpLink){
             helpBase= grailsApplication.config.rundeck?.gui?.helpLink
             helpUrl=helpBase + path + fragment
         }else{
+            println '------------------attrs: ' + attrs
             def helpParams = helpLinkParams(attrs,body)
             helpUrl= helpBase + path + '?' + helpParams + fragment
         }
@@ -935,7 +947,9 @@ class UtilityTagLib{
         }else if(attrs.sanitize){
             out << raw(attrs.sanitize.toString().encodeAsSanitizedHTML())
         }else if(null!=attrs.attr){
-            out << raw(attrs.attr.toString().encodeAsHTMLAttribute())
+            println '--------------attrs.attr: ' + attrs.attr
+//            out << raw(attrs.attr.toString().encodeAsHTMLAttribute())
+            out << raw(attrs.attr.toString())
         }else if(attrs.xml){
             out << attrs.xml.toString().encodeAsXMLContent()
         }else if(null !=attrs.js){
