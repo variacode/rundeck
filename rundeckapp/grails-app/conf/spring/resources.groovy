@@ -233,35 +233,37 @@ beans={
 		delimiter=grailsApplication.config.rundeck?.security?.authorization?.preauthenticated?.delimiter
 	}
 
+	println '--------------------------application.config.rundeck?.storage?.flatten(): ' + application.config.rundeck?.storage
+
 	def storageDir= new File(varDir, 'storage')
-	/*rundeckStorageTree(StorageTreeFactory){
+	rundeckStorageTree(StorageTreeFactory){
 		rundeckFramework=ref('rundeckFramework')
 		pluginRegistry=ref("rundeckPluginRegistry")
 		storagePluginProviderService=ref('storagePluginProviderService')
 		storageConverterPluginProviderService=ref('storageConverterPluginProviderService')
-		configuration = application.config.rundeck?.storage?.flatten()
+		configuration = [:]
 		storageConfigPrefix='provider'
 		converterConfigPrefix='converter'
 		baseStorageType='file'
 		baseStorageConfig=['baseDir':storageDir.getAbsolutePath()]
 		defaultConverters=['StorageTimestamperConverter','KeyStorageLayer']
 		loggerName='org.rundeck.storage.events'
-	}*/
-	//authRundeckStorageTree(AuthRundeckStorageTree, rundeckStorageTree)
+	}
+	authRundeckStorageTree(AuthRundeckStorageTree, rundeckStorageTree)
 
-	/*rundeckConfigStorageTree(StorageTreeFactory){
+	rundeckConfigStorageTree(StorageTreeFactory){
 		frameworkPropertyLookup=ref('frameworkPropertyLookup')
 		pluginRegistry=ref("rundeckPluginRegistry")
 		storagePluginProviderService=ref('storagePluginProviderService')
 		storageConverterPluginProviderService=ref('storageConverterPluginProviderService')
-		configuration = application.config.rundeck?.config?.storage?.flatten()
+		configuration = [:]
 		storageConfigPrefix='provider'
 		converterConfigPrefix='converter'
 		baseStorageType='db'
 		baseStorageConfig=[namespace:'config']
 		defaultConverters=['StorageTimestamperConverter']
 		loggerName='org.rundeck.config.storage.events'
-	}*/
+	}
 	/**
 	 * Define groovy-based plugins as Spring beans, registered in a hash map
 	 */

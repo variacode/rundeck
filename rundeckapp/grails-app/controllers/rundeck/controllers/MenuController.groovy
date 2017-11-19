@@ -82,7 +82,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
     StoragePluginProviderService storagePluginProviderService
     StorageConverterPluginProviderService storageConverterPluginProviderService
     PluginService pluginService
-    MetricService metricServic
+    MetricService metricService
 
     def configurationService
     ScmService scmService
@@ -120,6 +120,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             query.recentFilter="1h"
             params.recentFilter="1h"
         }
+
         if(!query.projFilter && params.project){
             query.projFilter=params.project
         }

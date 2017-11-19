@@ -176,6 +176,8 @@ dependencies {
             'com.atlassian.commonmark:commonmark-ext-gfm-tables:0.9.0',
             'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20160614.1'
 
+    //profiler plugin
+    compile "org.grails.plugins:profiler:0.5"
     //quartz plugin
     compile 'org.grails.plugins:quartz:2.0.1'
 

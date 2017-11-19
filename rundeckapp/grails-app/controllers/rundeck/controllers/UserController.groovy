@@ -85,8 +85,8 @@ class UserController extends ControllerBase{
     def handleLogin = {
         println 'inside the handleLogin'
         //temporary code to pass through authentication
-
-        session.user = request.remoteUser
+//        request.remoteUser = params.j_username
+        session.user = params.j_username
 
         Subject subject= new Subject();
         subject.principals << new Username(params.j_username)

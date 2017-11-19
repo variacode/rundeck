@@ -32,6 +32,7 @@
     <link rel="shortcut icon" href="${g.resource(dir: 'images', file: 'favicon.ico')}"/>
     <link rel="apple-touch-icon-precomposed" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
     <asset:stylesheet href="rundeck.css"/>
+    <asset:stylesheet href="rundeck-temp.css"/>
     <asset:stylesheet href="ansicolor.css"/>
 
     <asset:stylesheet href="jquery-ui.css"/>
@@ -125,9 +126,9 @@
 <div class="container footer">
 <g:render template="/common/footer"/>
 </div>
-<!--
+%{--<!--
 <g:profilerOutput />
--->
+-->--}%
 <miniprofiler:javascript/>
 
 <g:if test="${uiplugins && uipluginsPath && params.uiplugins!='false'}">

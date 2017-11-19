@@ -39,12 +39,9 @@ class AuthorizationInterceptor {
         println '-------------------------------controllerName : ' + controllerName
         println '-------------------------------actionName : ' + actionName
 
-        println '--------------------->inside the interceptor<-----------------------'
-        println '-----------------------request.api_version::::' +request.api_version
-        println '-----------------------request.remoteUser::::' +request.remoteUser
-        println '-----------------------grailsApplication.config::::' +grailsApplication.config.getProperty("rundeck.security.apiCookieAccess.enabled")
+        println '------------------------session.subject: ' + session.subject
+        println '------------------------grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled ' + grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled
 
-        
         if ((controllerName == "user" && (actionName == "login" || actionName == "handleLogin")) || controllerName == "static" || controllerName == "ico") {
             println '----------------inside the controller user and login screen condition---------------'
             return true
@@ -62,12 +59,12 @@ class AuthorizationInterceptor {
 
             request.subject = subject
             session.subject = subject
-        } else if(request.remoteUser && session.subject && grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled in ['true',true]){
+        } else if(/*request.remoteUser && */session.subject && grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled in ['true',true]){
             // Preauthenticated mode is enabled, handle upstream role changes
             Subject subject = createAuthSubject(request)
             request.subject = subject
             session.subject = subject
-        } else if(request.remoteUser && session.subject && grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled in ['false',false]) {
+        } else if(/*request.remoteUser && */session.subject && grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled in ['false',false]) {
             request.subject = session.subject
         } else if (request.api_version && !session.user ) {
             //allow authentication token to be used
