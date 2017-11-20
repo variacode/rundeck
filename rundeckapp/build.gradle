@@ -178,6 +178,10 @@ dependencies {
 
     //profiler plugin
     compile "org.grails.plugins:profiler:0.5"
+
+    //spring security
+    compile("org.springframework.boot:spring-boot-starter-security")
+
     //quartz plugin
     compile 'org.grails.plugins:quartz:2.0.1'
 

@@ -86,7 +86,7 @@ class UserController extends ControllerBase{
         println 'inside the handleLogin'
         //temporary code to pass through authentication
 //        request.remoteUser = params.j_username
-        session.user = params.j_username
+        /*session.user = params.j_username
 
         Subject subject= new Subject();
         subject.principals << new Username(params.j_username)
@@ -113,7 +113,7 @@ class UserController extends ControllerBase{
         request.subject = subject
         session.subject = subject
         params.login = params.j_username
-        //end
+        //end*/
 
         // Simple pass threw for now!
         session.user = params.login

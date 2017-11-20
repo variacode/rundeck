@@ -22,6 +22,9 @@ appender('STDOUT', ConsoleAppender) {
     }
 }
 
+//added sothat we get more of the Spring Boot startup
+logger("org.springframework", INFO)
+
 def targetDir = BuildSettings.TARGET_DIR
 if (Environment.isDevelopmentMode() && targetDir != null) {
     appender("FULL_STACKTRACE", FileAppender) {
@@ -33,4 +36,4 @@ if (Environment.isDevelopmentMode() && targetDir != null) {
     }
     logger("StackTrace", ERROR, ['FULL_STACKTRACE'], false)
 }
-root(ERROR, ['STDOUT'])
+root(INFO, ['STDOUT'])

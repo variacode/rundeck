@@ -810,19 +810,14 @@ class UtilityTagLib{
     }
     def helpLinkParams={attrs,body->
         def medium = grailsApplication.metadata.getApplicationVersion() + " " + System.getProperty('os.name') +" java "+ System.getProperty('java.version')
-        println '-------------medium: ' + medium + ":::: " + medium.class
         def campaign = attrs.campaign?:'helplink'
         def sourceName = g.message(code:'main.app.id',default: 'rundeckapp')
         def helpParams = [utm_source: sourceName, utm_medium: medium, utm_campaign: campaign, utm_content: (controllerName + '/' + actionName)]
-        println '-------------helpParams: ' + helpParams
         return genUrlParam(helpParams)
     }
 
     def String genUrlParam(Map<String, Serializable> params) {
-        println '----------------params: ' + params
         params.collect { k, v ->
-            println '=============k:' + k + ":" + k.class
-            println '=============v:' + v + ":" + v.class
 //            k.encodeAsURIComponent() + '=' + v.encodeAsURIComponent()
             URLEncoder.encode(k) + "=" + URLEncoder.encode(v)
         }.join('&')
@@ -831,7 +826,6 @@ class UtilityTagLib{
     def helpLinkUrl={attrs,body->
         def path=''
         def fragment=''
-        println '-----------path: ' + attrs
         if(attrs.path){
             path=attrs.path
             if(!path.startsWith('/')){
@@ -947,7 +941,6 @@ class UtilityTagLib{
         }else if(attrs.sanitize){
             out << raw(attrs.sanitize.toString().encodeAsSanitizedHTML())
         }else if(null!=attrs.attr){
-            println '--------------attrs.attr: ' + attrs.attr
 //            out << raw(attrs.attr.toString().encodeAsHTMLAttribute())
             out << raw(attrs.attr.toString())
         }else if(attrs.xml){

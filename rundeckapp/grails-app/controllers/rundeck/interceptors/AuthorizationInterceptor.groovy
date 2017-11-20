@@ -3,6 +3,7 @@ package rundeck.interceptors
 import com.dtolabs.rundeck.core.authentication.Group
 import com.dtolabs.rundeck.core.authentication.Username
 import grails.gsp.PageRenderer
+import grails.util.Holders
 import org.rundeck.web.infosec.AuthorizationRoleSource
 import org.springframework.context.ApplicationContext
 import rundeck.AuthToken
@@ -19,7 +20,7 @@ class AuthorizationInterceptor {
     int order = HIGHEST_PRECEDENCE + 100
 
     def FrameworkService frameworkService
-    def ApplicationContext applicationContext
+    def ApplicationContext applicationContext = Holders.findApplicationContext()
 
     PageRenderer groovyPageRenderer
 
@@ -36,16 +37,14 @@ class AuthorizationInterceptor {
 
     boolean before() {
 
-        println '-------------------------------controllerName : ' + controllerName
-        println '-------------------------------actionName : ' + actionName
+        println '-------------------------controllerName: ' + controllerName + " ::: actionName: " + actionName
+        println '-------------------------request.remoteuser : ' + request.remoteUser
+        println '-------------------------request.principal : ' + request.userPrincipal
 
-        println '------------------------session.subject: ' + session.subject
-        println '------------------------grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled ' + grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled
-
-        if ((controllerName == "user" && (actionName == "login" || actionName == "handleLogin")) || controllerName == "static" || controllerName == "ico") {
+        /*if ((controllerName == "user" && (actionName == "login" || actionName == "handleLogin")) || controllerName == "static" || controllerName == "ico") {
             println '----------------inside the controller user and login screen condition---------------'
             return true
-        }
+        }*/
 
         if (request.api_version && request.remoteUser && !(grailsApplication.config.getProperty("rundeck.security.apiCookieAccess.enabled") in ['true',true])){
             //disallow api access via normal login
@@ -53,18 +52,24 @@ class AuthorizationInterceptor {
             return
         }
         if (request.remoteUser && session.user!=request.remoteUser) {
+
+            println '--------------------------inside 2---------------------'
+
             session.user = request.remoteUser
 
             Subject subject=createAuthSubject(request)
+            println '------------------------createdAuthSubject: ' + subject
 
             request.subject = subject
             session.subject = subject
-        } else if(/*request.remoteUser && */session.subject && grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled in ['true',true]){
+        } else if(request.remoteUser && session.subject && grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled in ['true',true]){
+            println '--------------------------inside 3---------------------'
             // Preauthenticated mode is enabled, handle upstream role changes
             Subject subject = createAuthSubject(request)
             request.subject = subject
             session.subject = subject
-        } else if(/*request.remoteUser && */session.subject && grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled in ['false',false]) {
+        } else if(request.remoteUser && session.subject && grailsApplication.config.rundeck.security.authorization.preauthenticated.enabled in ['false',false]) {
+            println '--------------------------inside 4---------------------'
             request.subject = session.subject
         } else if (request.api_version && !session.user ) {
             //allow authentication token to be used
