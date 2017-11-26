@@ -237,9 +237,9 @@ public class URLResourceModelSource implements ResourceModelSource, Configurable
         //set destination temp file
 
         tempFileName = hashURL(this.configuration.nodesUrl.toExternalForm()) + ".temp";
-        destinationTempFile = new File(framework.getBaseDir(),
+        destinationTempFile = new File(framework.getFilesystemFramework().getBaseDir(),
             "var/urlResourceModelSourceCache/"+this.configuration.project+"/" + tempFileName);
-        destinationCacheData = new File(framework.getBaseDir(),
+        destinationCacheData = new File(framework.getFilesystemFramework().getBaseDir(),
             "var/urlResourceModelSourceCache/" +this.configuration.project+"/"+ tempFileName + ".cache.properties");
         if (!destinationTempFile.getParentFile().isDirectory() && !destinationTempFile.getParentFile().mkdirs()) {
             logger.warn(

@@ -229,7 +229,7 @@ class ScriptExecutionFileStoragePlugin
         return execRetrieveClosure(filetype, stream, 'retrieve')
     }
 
-    @Override
+//    @Override
     boolean partialRetrieve(String filetype, OutputStream stream) throws IOException, ExecutionFileStorageException {
 
         if (!partialRetrieveSupported) {

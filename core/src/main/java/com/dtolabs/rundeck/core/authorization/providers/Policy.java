@@ -60,9 +60,4 @@ public interface Policy extends AclRuleSetSource {
      *
      */
     public EnvironmentalContext getEnvironment();
-
-    /**
-     * @return description of the policy
-     */
-    String getDescription();
 }

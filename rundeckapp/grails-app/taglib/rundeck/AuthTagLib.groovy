@@ -27,7 +27,7 @@ class AuthTagLib {
     def static namespace="auth"
     def FrameworkService frameworkService
     static returnObjectForTags = ['jobAllowedTest','adhocAllowedTest', 'resourceAllowedTest']
-    
+
     /**
      * Render an enclosed body if user authorization matches the assertion.  Attributes:
      *  'auth'= name of auth to check, 'has'= true/false [optional], 'altText'=failed assertion message [optional]
@@ -41,18 +41,18 @@ class AuthTagLib {
         if(!attrs.action && !attrs.name){
             throw new Exception("action attribute required: " + attrs.action + ": " + attrs.name)
         }
-        
+
         def action = attrs.action
         if(!action) {
             action = attrs.name
         }
-        
-        
+
+
         if(!attrs.job) {
             throw new Exception("job required for action: " + action);
         }
-        
-        
+
+
         boolean has=(!attrs.has || attrs.has == "true")
 
         def authContext = frameworkService.getAuthContextForSubjectAndProject(request.subject,attrs.project)
@@ -119,6 +119,8 @@ class AuthTagLib {
         }
         def check=resourceAllowedTest(attrs,body)
 
+        println "-------------------------------check: " + check
+
         if (check) {
             out << body()
         } else if (attrs.altText) {
@@ -147,12 +149,16 @@ class AuthTagLib {
 
         def action = attrs.action
 
+        println '------------------>action:'  + action
+
         def List tests = []
         if (action instanceof String) {
             tests.add(action)
         } else if (action instanceof Collection) {
             tests.addAll(action)
         }
+
+        println '==================tests: ' + tests
 
         def env
 
@@ -162,7 +168,14 @@ class AuthTagLib {
         } else {
             env = Collections.singleton(new Attribute(URI.create(EnvironmentalContext.URI_BASE +"project"), attrs.project))
         }
+
+
+        println "----------------------------env: " + env
+
+
         def resource = [type: attrs.type ?: 'resource']
+        println '-----------------------resource : ' + resource
+
         def tagattrs = [:]
         tagattrs.putAll(attrs)
         tagattrs.remove('type')
@@ -171,11 +184,20 @@ class AuthTagLib {
         tagattrs.remove('context')
         tagattrs.remove('any')
         tagattrs.remove('others')
+
+        println '----------------------tagattrs: ' + tagattrs
+
         def attributes = attrs.attributes ?: tagattrs
         if (attributes) {
             resource.putAll(attributes)
         }
+
+        println '-----------------------resource: ' + resource
+
         Set resources = [resource]
+
+        println '------------------------------resources: ' + resources
+        println '------------------------------appContext: ' + appContext
 
         def authContext = appContext?frameworkService.getAuthContextForSubject(request.subject):
                 frameworkService.getAuthContextForSubjectAndProject(request.subject,attrs.project)
@@ -183,6 +205,9 @@ class AuthTagLib {
         if(other){
             boolean isAuth = false
             def projectNames = frameworkService.projectNames(authContext)
+
+            println '------------------------------->projectNames: ' + projectNames
+
             projectNames.each{
                 env = Collections.singleton(new Attribute(URI.create(EnvironmentalContext.URI_BASE +"project"), it))
                 if(it != attrs.project){
@@ -192,13 +217,20 @@ class AuthTagLib {
                     }
                 }
             }
+
+            println '----------------------------return isAuth: ' + isAuth
+
             return isAuth
         }
 
         if(anyCheck){
+
+            println '----------------anycheck ------------- ' + anyCheck
             return tests.any { authContext.evaluate(resources, [it] as Set, env).any{has==it.authorized} }
         }
         def decisions = authContext.evaluate(resources, tests as Set, env)
+        println '-------------------------------decisions: ' + decisions
+
         //return true if all decsisions are (has==true) or are not (has!=true) authorized
         return !(decisions.find{has^it.authorized})
     }
@@ -252,24 +284,24 @@ class AuthTagLib {
         if(!attrs.action && !attrs.name){
             throw new Exception("action attribute required: " + attrs.action + ": " + attrs.name)
         }
-        
+
         def action = attrs.action
         if(!action) {
             action = attrs.name
         }
-        
+
         def Set tests=[]
         if(action instanceof String) {
             tests.add(action)
         } else if(action instanceof Collection){
             tests.addAll(action)
         }
-        
+
         if(!attrs.job) {
             throw new Exception("job required for action: " + tests);
         }
-        
-                
+
+
 
         def Set resources = [frameworkService.authResourceForJob(attrs.job?.jobName, attrs.job?.groupPath) ]
 

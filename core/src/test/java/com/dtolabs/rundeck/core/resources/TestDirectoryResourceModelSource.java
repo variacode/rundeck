@@ -50,14 +50,16 @@ public class TestDirectoryResourceModelSource extends AbstractBaseTest {
     FrameworkProject frameworkProject;
 
     public void setUp() {
+/*
 
-        /*final Framework frameworkInstance = getFrameworkInstance();
+        final Framework frameworkInstance = getFrameworkInstance();
        frameworkProject = frameworkInstance.getFilesystemFrameworkProjectManager().createFSFrameworkProject(
                 PROJ_NAME);
         generateProjectResourcesFile(
                 new File("src/test/resources/com/dtolabs/rundeck/core/common/test-nodes1.xml"),
                 frameworkProject
-        );*/
+        );
+*/
 
     }
 
@@ -342,7 +344,7 @@ public class TestDirectoryResourceModelSource extends AbstractBaseTest {
 
         File file2 = new File(directory, "test1.yaml");
         assertFalse(file2.exists());
-
+        
         final INodeSet nodes = directoryNodesProvider.getNodes();
         assertNotNull(nodes);
         assertEquals(2, nodes.getNodes().size());

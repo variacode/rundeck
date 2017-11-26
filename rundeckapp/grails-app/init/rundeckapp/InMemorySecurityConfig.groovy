@@ -63,7 +63,7 @@ public class InMemorySecurityConfig extends WebSecurityConfigurerAdapter {
 	public void configureGGlobal(AuthenticationManagerBuilder auth) throws Exception {
 		auth
 			.inMemoryAuthentication()
-			.withUser("parth").password("secret").roles("user")
+			.withUser("admin").password("secret").roles("admin")
 	}
 
 }

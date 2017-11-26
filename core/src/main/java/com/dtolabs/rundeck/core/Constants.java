@@ -54,7 +54,8 @@ public final class Constants {
      * @return RDECK_BASE, base directory patch for instance of client, equivalent to ${rdeck.base}
      */
     public static String getSystemBaseDir() {
-        return System.getProperty("rdeck.base");
+//        return System.getProperty("rdeck.base");
+        return "/home/parth/IdeaProjects/rundeck/test";
     }
 
     /* ******************************************************************************  */

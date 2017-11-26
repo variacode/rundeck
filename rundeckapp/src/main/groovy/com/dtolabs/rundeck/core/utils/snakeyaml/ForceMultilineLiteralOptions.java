@@ -38,10 +38,10 @@ public class ForceMultilineLiteralOptions extends DumperOptions {
     public static final String REGEX_NUMERICAL_EXTRA = "^[0-9_,.+-]+$";
     public static final String REGEX_NUMERICAL = "^[0-9]+$";
 
-//    @Override
-    /*public ScalarStyle calculateScalarStyle(
+   /* @Override
+    public DumperOptions.ScalarStyle calculateScalarStyle(
             final ScalarAnalysis analysis,
-            final ScalarStyle style
+            final DumperOptions.ScalarStyle style
     )
     {
         if (analysis.multiline) {

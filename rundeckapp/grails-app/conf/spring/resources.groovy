@@ -81,6 +81,8 @@ beans={
 	}
 	if(!rdeckBase){
 		System.err.println("rdeck.base was not defined in application config or as a system property")
+		//test purpose
+		rdeckBase = "/home/parth/IdeaProjects/rundeck/test"
 		return
 	}
 	def serverLibextDir = application.config.rundeck?.server?.plugins?.dir?:"${rdeckBase}/libext"

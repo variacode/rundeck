@@ -32,6 +32,7 @@ public class AuthorizationFactory {
      * @return authorization
      */
     public static Authorization createFromDirectory(File dir) {
+        System.out.println("-------------------------->Policies.load(dir): " + Policies.load(dir));
         return AclsUtil.createAuthorization(Policies.load(dir));
     }
 }
