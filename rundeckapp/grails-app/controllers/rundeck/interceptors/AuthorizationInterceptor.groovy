@@ -37,9 +37,14 @@ class AuthorizationInterceptor {
 
     boolean before() {
 
+        println '---------------------------requestURl: ' + request.getRequestURI()
         println '-------------------------controllerName: ' + controllerName + " ::: actionName: " + actionName
         println '-------------------------request.remoteuser : ' + request.remoteUser
         println '-------------------------request.principal : ' + request.userPrincipal
+
+        if(controllerName == "static") {
+            return true
+        }
 
         /*if ((controllerName == "user" && (actionName == "login" || actionName == "handleLogin")) || controllerName == "static" || controllerName == "ico") {
             println '----------------inside the controller user and login screen condition---------------'

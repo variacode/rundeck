@@ -31,7 +31,7 @@
     <link rel="favicon" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
     <link rel="shortcut icon" href="${g.resource(dir: 'images', file: 'favicon.ico')}"/>
     <link rel="apple-touch-icon-precomposed" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
-    <asset:stylesheet href="rundeck.css"/>
+    %{--<asset:stylesheet href="rundeck.css"/>--}%
     <asset:stylesheet href="rundeck-temp.css"/>
     <asset:stylesheet href="ansicolor.css"/>
 

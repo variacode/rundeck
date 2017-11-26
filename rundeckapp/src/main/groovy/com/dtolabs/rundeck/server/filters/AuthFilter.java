@@ -72,6 +72,9 @@ public class AuthFilter implements Filter {
             throws IOException, ServletException
     {
 
+        System.out.println("\n\n----------------------inside the authfilter--------------------\n\n");
+        System.out.println("-----------------------------request.remoteUser::::::: " + ((HttpServletRequest)request).getRemoteUser());
+
         if (!enabled) {
             filterChain.doFilter(request, response);
             return;

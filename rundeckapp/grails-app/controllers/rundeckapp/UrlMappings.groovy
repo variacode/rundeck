@@ -25,8 +25,7 @@ class UrlMappings {
                 // apply constraints here
             }
         }
-        "/"(controller: 'menu', action: 'home')
-//        "/"(controller: 'user', action: 'login')
+        "/"(controller: 'menu', action: 'index')
         /*******
          * API url paths, v1
          */

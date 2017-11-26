@@ -13,7 +13,7 @@ public class InMemorySecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
-		http
+		/*http
 			.authorizeRequests()
 				.antMatchers("/user/login",
 					"/user/error",
@@ -36,6 +36,27 @@ public class InMemorySecurityConfig extends WebSecurityConfigurerAdapter {
 			.anyRequest().authenticated()
 		.and()
 			.httpBasic()
+			*/
+		http
+			.authorizeRequests()
+				.antMatchers("/user/login", "/user/error", "/user/logout", "/user/loggedout", "/images/**",
+				"/css/**", "/js/**", "/feed/**", "/test/**", "/test/**", "/api/**", "/static/**", "/assets/**", "/font/**")
+				.permitAll()
+				.antMatchers("/").authenticated()
+		.and()
+			.httpBasic()
+
+		/*http
+			.authorizeRequests()
+				.antMatchers("/user/login", "/user/error", "/user/logout", "/user/loggedout", "/images/**",
+				"/css/**", "/js/**", "/feed/**", "/test/**", "/test/**", "/api/**", "/static/**", "/assets/**", "/font/**")
+			.permitAll()
+			.antMatchers("/").authenticated()
+		.and()
+			.formLogin().permitAll()
+		.and()
+			.logout().permitAll()
+		*/
 	}
 
 	@Autowired

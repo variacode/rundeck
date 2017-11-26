@@ -2051,8 +2051,11 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         long start = System.currentTimeMillis()
         def fprojects = frameworkService.projectNames(authContext)
+
+        println '--------------------------fprojects: ' + fprojects
+
         session.frameworkProjects = fprojects
-        log.debug("frameworkService.projectNames(context)... ${System.currentTimeMillis() - start}")
+        log.info("frameworkService.projectNames(context)... ${System.currentTimeMillis() - start}")
         def stats=cachedSummaryProjectStats(fprojects)
 
         render(view: 'home', model: [

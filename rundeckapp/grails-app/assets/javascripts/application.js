@@ -1091,7 +1091,7 @@ function _initMarkdeep(){
         jQuery(document).ready(function () {
             jQuery.support.transition = false;
             jQuery('.has_tooltip').tooltip({});
-            jQuery('.has_popover').popover({});
+            //jQuery('.has_popover').popover({});
             _initPopoverContentRef();
             _initPopoverContentFor();
             _initAffix();
