@@ -58,13 +58,12 @@ class AuthorizationService implements InitializingBean{
      * @return
      */
     def Authorization getSystemAuthorization() {
-        println '--------------------metricService: ' + metricService
+
         if(metricService) {
             metricService.withTimer(this.class.name, 'getSystemAuthorization') {
                 timedAuthorization(AclsUtil.append(rundeckFilesystemPolicyAuthorization, getStoredAuthorization()))
             }
         }else{
-            println '--------------------rundeckFilesystemPolicyAuthorization: ' + rundeckFilesystemPolicyAuthorization
             AclsUtil.append(rundeckFilesystemPolicyAuthorization, getStoredAuthorization())
         }
     }

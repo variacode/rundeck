@@ -58,7 +58,7 @@
 <div class="col-sm-4 col-sm-push-4">
     <div class="panel panel-primary ">
         <div class="panel-body">
-        <form action="j_spring_security_check" method="post" class="form " role="form">
+        <form action="/user/login" method="post" class="form " role="form">
             <g:set var="loginhtml" value="${grailsApplication.config.rundeck?.gui?.login?.welcomeHtml ?: ''}"/>
             <g:if test="${loginhtml}">
             <div class="row">

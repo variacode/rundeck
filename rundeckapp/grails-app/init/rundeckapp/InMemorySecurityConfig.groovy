@@ -37,6 +37,7 @@ public class InMemorySecurityConfig extends WebSecurityConfigurerAdapter {
 		.and()
 			.httpBasic()
 			*/
+
 		http
 			.authorizeRequests()
 				.antMatchers("/user/login", "/user/error", "/user/logout", "/user/loggedout", "/images/**",
@@ -44,8 +45,15 @@ public class InMemorySecurityConfig extends WebSecurityConfigurerAdapter {
 				.permitAll()
 				.antMatchers("/").authenticated()
 		.and()
+			.formLogin()
+				.loginPage("/user/login")
+				.failureForwardUrl("/user/error")
+				.defaultSuccessUrl("/")
+				.usernameParameter("username").passwordParameter("password")
+				.permitAll()
+		/*.and()
 			.httpBasic()
-
+*/
 		/*http
 			.authorizeRequests()
 				.antMatchers("/user/login", "/user/error", "/user/logout", "/user/loggedout", "/images/**",

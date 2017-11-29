@@ -119,8 +119,6 @@ class AuthTagLib {
         }
         def check=resourceAllowedTest(attrs,body)
 
-        println "-------------------------------check: " + check
-
         if (check) {
             out << body()
         } else if (attrs.altText) {
@@ -149,16 +147,12 @@ class AuthTagLib {
 
         def action = attrs.action
 
-        println '------------------>action:'  + action
-
         def List tests = []
         if (action instanceof String) {
             tests.add(action)
         } else if (action instanceof Collection) {
             tests.addAll(action)
         }
-
-        println '==================tests: ' + tests
 
         def env
 
@@ -169,12 +163,7 @@ class AuthTagLib {
             env = Collections.singleton(new Attribute(URI.create(EnvironmentalContext.URI_BASE +"project"), attrs.project))
         }
 
-
-        println "----------------------------env: " + env
-
-
         def resource = [type: attrs.type ?: 'resource']
-        println '-----------------------resource : ' + resource
 
         def tagattrs = [:]
         tagattrs.putAll(attrs)
@@ -185,19 +174,12 @@ class AuthTagLib {
         tagattrs.remove('any')
         tagattrs.remove('others')
 
-        println '----------------------tagattrs: ' + tagattrs
-
         def attributes = attrs.attributes ?: tagattrs
         if (attributes) {
             resource.putAll(attributes)
         }
 
-        println '-----------------------resource: ' + resource
-
         Set resources = [resource]
-
-        println '------------------------------resources: ' + resources
-        println '------------------------------appContext: ' + appContext
 
         def authContext = appContext?frameworkService.getAuthContextForSubject(request.subject):
                 frameworkService.getAuthContextForSubjectAndProject(request.subject,attrs.project)
@@ -205,8 +187,6 @@ class AuthTagLib {
         if(other){
             boolean isAuth = false
             def projectNames = frameworkService.projectNames(authContext)
-
-            println '------------------------------->projectNames: ' + projectNames
 
             projectNames.each{
                 env = Collections.singleton(new Attribute(URI.create(EnvironmentalContext.URI_BASE +"project"), it))
@@ -218,18 +198,13 @@ class AuthTagLib {
                 }
             }
 
-            println '----------------------------return isAuth: ' + isAuth
-
             return isAuth
         }
 
         if(anyCheck){
-
-            println '----------------anycheck ------------- ' + anyCheck
             return tests.any { authContext.evaluate(resources, [it] as Set, env).any{has==it.authorized} }
         }
         def decisions = authContext.evaluate(resources, tests as Set, env)
-        println '-------------------------------decisions: ' + decisions
 
         //return true if all decsisions are (has==true) or are not (has!=true) authorized
         return !(decisions.find{has^it.authorized})

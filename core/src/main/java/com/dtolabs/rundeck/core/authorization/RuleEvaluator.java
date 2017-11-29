@@ -103,44 +103,30 @@ public class RuleEvaluator implements Authorization, AclRuleSetSource {
     {
         if (rule.getEnvironment() != null) {
 
-            System.out.println("Rule getEnvironment not null");
-
             final EnvironmentalContext environment1 = rule.getEnvironment();
 
-            System.out.println("------------------environment1: "+ environment1);
             if (!environment1.isValid()) {
-                System.out.println(rule.toString() + ": Context section not valid: " + environment1.toString());
                 logger.warn(rule.toString() + ": Context section not valid: " + environment1.toString());
             }
             if (!environment1.matches(environment)) {
-                System.out.println(rule.toString() + ": environment not matched: " + environment1.toString());
                 if (logger.isDebugEnabled()) {
                     logger.debug(rule.toString() + ": environment not matched: " + environment1.toString());
                 }
                 return false;
             }
         } else if (null != environment && environment.size() > 0) {
-
-            System.out.println(rule.toString() + ": empty environment not matched");
-
             logger.debug(rule.toString() + ": empty environment not matched");
             return false;
         }
 
-        System.out.println("-----------------------inside 2---------------------------");
-        System.out.println("subject.getUsername(): " + subject.getUsername());
-        System.out.println("rule.getUsername(): " + rule.getUsername());
-
         if (subject.getUsername() != null && rule.getUsername() != null) {
-            System.out.println("-----------------------subject ---------------------------");
 
             if (subject.getUsername().equals(rule.getUsername())
                 || matchesPattern(subject.getUsername(), rule.getUsername())
                     ) {
-                System.out.println("--------------------inside true-------------------");
+
                 return true;
             } else if (rule.getUsername() != null) {
-                System.out.println(rule.toString() + ": username not matched: " + rule.getUsername());
 
                 if (logger.isDebugEnabled()) {
                     logger.debug(rule.toString() + ": username not matched: " + rule.getUsername());
@@ -148,22 +134,20 @@ public class RuleEvaluator implements Authorization, AclRuleSetSource {
             }
         }
 
-        System.out.println("--------------subject.getGroups(): " + subject.getGroups());
         if (subject.getGroups().size() > 0) {
             // no username matched, check groups.
             if (subject.getGroups().contains(rule.getGroup())
                 || matchesAnyPatterns(subject.getGroups(), rule.getGroup())) {
-                System.out.println("----------------group return true-------------------");
+
                 return true;
             } else if (subject.getGroups().size() > 0) {
-                System.out.println("---------------false condition: " + rule.toString() + ": group not matched: " + rule.getGroup());
+
                 if (logger.isDebugEnabled()) {
                     logger.debug(rule.toString() + ": group not matched: " + rule.getGroup());
                 }
             }
         }
 
-        System.out.println("Returning false");
         return false;
     }
 
@@ -233,13 +217,7 @@ public class RuleEvaluator implements Authorization, AclRuleSetSource {
         Set<Decision> decisions = new HashSet<Decision>();
         long duration = 0;
 
-        System.out.println("------------------getRuleSet(): " + getRuleSet());
-        System.out.println("-----------------------subjectFrom(subject): " + subjectFrom(subject));
-        System.out.println("-----------------------environment: " + environment);
-
         List<AclRule> matchedRules = narrowContext(getRuleSet(), subjectFrom(subject), environment);
-
-        System.out.println("------------------------>matchedRules: " + matchedRules.size());
 
         for (Map<String, String> resource : resources) {
             for (String action : actions) {

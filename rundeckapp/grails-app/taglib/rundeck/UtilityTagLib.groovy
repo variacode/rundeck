@@ -845,7 +845,7 @@ class UtilityTagLib{
             helpBase= grailsApplication.config.rundeck?.gui?.helpLink
             helpUrl=helpBase + path + fragment
         }else{
-            println '------------------attrs: ' + attrs
+            //println '------------------attrs: ' + attrs
             def helpParams = helpLinkParams(attrs,body)
             helpUrl= helpBase + path + '?' + helpParams + fragment
         }
@@ -946,7 +946,8 @@ class UtilityTagLib{
         }else if(attrs.xml){
             out << attrs.xml.toString().encodeAsXMLContent()
         }else if(null !=attrs.js){
-            out << raw(attrs.js.toString().encodeAsJavaScript2())
+//            out << raw(attrs.js.toString().encodeAsJavaScript2())
+            out << raw(attrs.js.toString())
         }else if(attrs.json!=null){
             out << attrs.json.encodeAsJSON().toString().replaceAll('<', '\\\\u003c') //nb: replace < to allow embedding in page
         }else if(attrs.url){
@@ -1103,7 +1104,7 @@ class UtilityTagLib{
             def tokensHolder = HMacSynchronizerTokensHolder.store(session, hMacSynchronizerTokensManager, [session.user, request.remoteAddr])
         }
         //call original form tag
-        def applicationTagLib = grailsApplication.mainContext.getBean('org.codehaus.groovy.grails.plugins.web.taglib.FormTagLib')
+        def applicationTagLib = grailsApplication.mainContext.getBean('org.grails.plugins.web.taglib.FormTagLib')
         applicationTagLib.form.call(attrs,body)
     }
 

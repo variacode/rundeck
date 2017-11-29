@@ -48,10 +48,10 @@ class HMacSynchronizerTokensManager implements InitializingBean, Serializable {
      * @return Map of [TOKEN: String, TIMESTAMP: Long]
      */
     public String generateToken(String nonce, String sessionId, List<String> data) {
-//        String token = ('' +  nonce + '/' + sessionId + (data ? '/' + (data.join('/')) : ''))
-//        String digest = HexCodec.encode(MacUtils.digest(algorithm, secretKey, token))
-//        digest
-        return null
+        String token = ('' +  nonce + '/' + sessionId + (data ? '/' + (data.join('/')) : ''))
+        String digest = (MacUtils.digest(algorithm, secretKey, token)).encodeAsHex()
+        digest
+//        return null
     }
 
     @Override

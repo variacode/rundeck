@@ -2034,10 +2034,9 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
     def home() {
         //first-run html info
         def isFirstRun=false
-        println 'inside the home '
         if(configurationService.getBoolean("startup.detectFirstRun",true) &&
                 frameworkService.rundeckFramework.hasProperty('framework.var.dir')) {
-            println '------------------------debug log : ' + frameworkService.rundeckFramework.hasProperty('framework.var.dir')
+
             def vardir = frameworkService.rundeckFramework.getProperty('framework.var.dir')
             def vers = grailsApplication.config.getProperty('build.ident').replaceAll('\\s+\\(.+\\)$','')
             def file = new File(vardir, ".first-run-${vers}")
