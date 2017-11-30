@@ -34,6 +34,8 @@ class FormTokenFilters {
                     params[SynchronizerTokensHolder.TOKEN_KEY]=request.getHeader(TOKEN_KEY_HEADER)
                     params[SynchronizerTokensHolder.TOKEN_URI]=request.getHeader(TOKEN_URI_HEADER)
                 }
+
+
             }
         }
     }

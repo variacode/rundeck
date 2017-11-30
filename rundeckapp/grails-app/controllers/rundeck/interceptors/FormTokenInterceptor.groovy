@@ -19,6 +19,8 @@ class FormTokenInterceptor {
             params[SynchronizerTokensHolder.TOKEN_URI]=request.getHeader(TOKEN_URI_HEADER)
         }
 
+//        params[_csrf.parameterName]=_csrf.token
+
         return true
     }
 

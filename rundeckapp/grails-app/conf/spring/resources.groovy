@@ -52,6 +52,8 @@ import org.rundeck.web.infosec.HMacSynchronizerTokensManager
 import org.rundeck.web.infosec.PreauthenticatedAttributeRoleSource
 import org.springframework.beans.factory.config.MapFactoryBean
 import org.springframework.core.task.SimpleAsyncTaskExecutor
+import org.springframework.security.web.csrf.CsrfFilter
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository
 import rundeck.services.PasswordFieldsService
 import rundeck.services.QuartzJobScheduleManager
 import rundeck.services.scm.ScmJobImporter
@@ -350,6 +352,5 @@ beans={
 	/// XML/JSON custom marshaller support
 
 	apiMarshallerRegistrar(ApiMarshallerRegistrar)
-
 
 }

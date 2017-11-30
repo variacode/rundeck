@@ -22,6 +22,7 @@
 
 // methods for modifying inner html or text content
 
+
 function clearHtml(elem){
     $(elem).innerHTML = '';
 }
@@ -950,6 +951,7 @@ function _initAnsiToggle(){
  * @private
  */
 function _ajaxSendTokens(id,jqxhr,settings){
+    alert("ajax send tokens")
     var elem = jQuery('#' + id);
     var data = {};
     if(elem && elem.data('rundeck-token-key') && elem.data('rundeck-token-uri')){
@@ -962,6 +964,7 @@ function _ajaxSendTokens(id,jqxhr,settings){
         jqxhr.setRequestHeader('X-RUNDECK-TOKEN-KEY',data.TOKEN);
         jqxhr.setRequestHeader('X-RUNDECK-TOKEN-URI',data.URI);
     }
+
     return true;
 }
 /**

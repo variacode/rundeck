@@ -82,7 +82,7 @@
                 <label for="login">Username</label>
                 <input type="text" name="username" id="login" class="form-control" autofocus="true"/>
             </div>
-            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
+            %{--<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />--}%
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" name="password" id="password" class="form-control"/>

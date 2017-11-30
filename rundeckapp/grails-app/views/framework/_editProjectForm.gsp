@@ -26,6 +26,9 @@
 <g:if test="${editOnly}">
     <g:hiddenField name="project" value="${project}"/>
 </g:if>
+
+    %{--<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>--}%
+
     <div class="list-group-item">
     <g:if test="${!editOnly}">
         <div class="form-group ${projectNameError?'has-error':''}">

@@ -23,6 +23,7 @@ import org.grails.web.servlet.mvc.SynchronizerTokensHolder
 import org.rundeck.web.infosec.HMacSynchronizerTokensHolder
 import org.rundeck.web.infosec.HMacSynchronizerTokensManager
 //import rundeck.filters.filters.FormTokenFilters
+import rundeck.interceptors.FormTokenInterceptor
 import rundeck.services.FrameworkService
 
 import java.text.MessageFormat
