@@ -326,7 +326,7 @@ class Execution extends ExecutionContext {
         if(data.willRetry){
             exec.willRetry=XmlParserUtil.stringToBool(data.willRetry,false)
         }
-        if (data.nodefilters) {
+        if (data.nodefilters) {LogFileStorageRequest
             exec.nodeThreadcount = XmlParserUtil.stringToInt(data.nodefilters.dispatch?.threadcount,1)
             if (data.nodefilters.dispatch?.containsKey('keepgoing')) {
                 exec.nodeKeepgoing = XmlParserUtil.stringToBool(data.nodefilters.dispatch.keepgoing, false)

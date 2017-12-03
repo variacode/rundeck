@@ -19,10 +19,11 @@ package rundeck
 import com.dtolabs.rundeck.core.common.FrameworkResourceException
 import com.dtolabs.rundeck.core.plugins.configuration.PropertyResolverFactory
 import grails.util.Environment
+import org.grails.web.servlet.mvc.SynchronizerTokensHolder
 import org.rundeck.web.infosec.HMacSynchronizerTokensHolder
 import org.rundeck.web.infosec.HMacSynchronizerTokensManager
-import org.codehaus.groovy.grails.web.servlet.mvc.SynchronizerTokensHolder
-import rundeck.filters.FormTokenFilters
+//import rundeck.filters.filters.FormTokenFilters
+import rundeck.interceptors.FormTokenInterceptor
 import rundeck.services.FrameworkService
 
 import java.text.MessageFormat
@@ -809,7 +810,7 @@ class UtilityTagLib{
         }
     }
     def helpLinkParams={attrs,body->
-        def medium = "${grailsApplication.metadata['app.version']} ${System.getProperty('os.name')} java ${System.getProperty('java.version')}"
+        def medium = grailsApplication.metadata.getApplicationVersion() + " " + System.getProperty('os.name') +" java "+ System.getProperty('java.version')
         def campaign = attrs.campaign?:'helplink'
         def sourceName = g.message(code:'main.app.id',default: 'rundeckapp')
         def helpParams = [utm_source: sourceName, utm_medium: medium, utm_campaign: campaign, utm_content: (controllerName + '/' + actionName)]
@@ -817,7 +818,11 @@ class UtilityTagLib{
     }
 
     def String genUrlParam(Map<String, Serializable> params) {
-        params.collect { k, v -> k.encodeAsURIComponent() + '=' + v.encodeAsURIComponent() }.join('&')
+        params.collect { k, v ->
+//            k.encodeAsURIComponent() + '=' + v.encodeAsURIComponent()
+            URLEncoder.encode(k) + "=" + URLEncoder.encode(v)
+        }.join('&')
+//        println '------after that'
     }
     def helpLinkUrl={attrs,body->
         def path=''
@@ -833,13 +838,15 @@ class UtilityTagLib{
                 fragment='#'+split[1]
             }
         }
-        def rdversion = grailsApplication.metadata['app.version']
+//        def rdversion = grailsApplication.metadata['app.version']
+        def rdversion = grailsApplication.metadata.getApplicationVersion()
         def helpBase='http://rundeck.org/' +( rdversion?.contains('SNAPSHOT')?'docs':rdversion)
         def helpUrl
         if(grailsApplication.config.rundeck?.gui?.helpLink){
             helpBase= grailsApplication.config.rundeck?.gui?.helpLink
             helpUrl=helpBase + path + fragment
         }else{
+            //println '------------------attrs: ' + attrs
             def helpParams = helpLinkParams(attrs,body)
             helpUrl= helpBase + path + '?' + helpParams + fragment
         }
@@ -935,11 +942,13 @@ class UtilityTagLib{
         }else if(attrs.sanitize){
             out << raw(attrs.sanitize.toString().encodeAsSanitizedHTML())
         }else if(null!=attrs.attr){
-            out << raw(attrs.attr.toString().encodeAsHTMLAttribute())
+//            out << raw(attrs.attr.toString().encodeAsHTMLAttribute())
+            out << raw(attrs.attr.toString())
         }else if(attrs.xml){
             out << attrs.xml.toString().encodeAsXMLContent()
         }else if(null !=attrs.js){
-            out << raw(attrs.js.toString().encodeAsJavaScript2())
+//            out << raw(attrs.js.toString().encodeAsJavaScript2())
+            out << raw(attrs.js.toString())
         }else if(attrs.json!=null){
             out << attrs.json.encodeAsJSON().toString().replaceAll('<', '\\\\u003c') //nb: replace < to allow embedding in page
         }else if(attrs.url){
@@ -1045,8 +1054,8 @@ class UtilityTagLib{
     def refreshFormTokensHeader = { attrs, body ->
         SynchronizerTokensHolder tokensHolder = tokensHolder()
         def uri = attrs.uri ?: params[SynchronizerTokensHolder.TOKEN_URI]
-        response.addHeader(FormTokenFilters.TOKEN_KEY_HEADER, tokensHolder.generateToken(uri))
-        response.addHeader(FormTokenFilters.TOKEN_URI_HEADER, uri)
+        response.addHeader(FormTokenInterceptor.TOKEN_KEY_HEADER, tokensHolder.generateToken(uri))
+        response.addHeader(FormTokenInterceptor.TOKEN_URI_HEADER, uri)
     }
 
 
@@ -1096,7 +1105,7 @@ class UtilityTagLib{
             def tokensHolder = HMacSynchronizerTokensHolder.store(session, hMacSynchronizerTokensManager, [session.user, request.remoteAddr])
         }
         //call original form tag
-        def applicationTagLib = grailsApplication.mainContext.getBean('org.codehaus.groovy.grails.plugins.web.taglib.FormTagLib')
+        def applicationTagLib = grailsApplication.mainContext.getBean('org.grails.plugins.web.taglib.FormTagLib')
         applicationTagLib.form.call(attrs,body)
     }
 

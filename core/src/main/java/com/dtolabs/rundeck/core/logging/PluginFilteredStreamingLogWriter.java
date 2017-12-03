@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Filters log output through log filter plugins
  * @author greg
  * @since 5/11/17
  */
@@ -36,12 +35,6 @@ public class PluginFilteredStreamingLogWriter extends FilterStreamingLogWriter {
     private final List<LogFilterPlugin> plugins;
     private final MyLoggingContext myLoggingContext;
 
-    /**
-     * Create
-     * @param writer sink for filtered log events
-     * @param context context
-     * @param directLogger logger for plugin logging to bypass filtering
-     */
     PluginFilteredStreamingLogWriter(
             final StreamingLogWriter writer,
             ExecutionContext context,

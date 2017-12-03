@@ -24,8 +24,9 @@
     <title><g:message code="domain.Project.choose.title" default="Create a Project"/></title>
 
     <g:javascript library="prototype/effects"/>
-    <asset:javascript src="resourceModelConfig.js"/>
     <asset:javascript src="storageBrowseKO.js"/>
+    <asset:javascript src="resourceModelConfig.js"/>
+
     <g:javascript>
 
     var configControl;

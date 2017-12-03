@@ -207,6 +207,15 @@
             <g:unless test="${session.frameworkProjects}">
                 <g:javascript>
             jQuery(function(){
+                /*var token = jQuery("meta[name='_csrf']").attr("content");
+                var header = jQuery("meta[name='_csrf_header']").attr("content");
+
+                console.log(token);
+
+                jQuery(document).ajaxSend(function(e, xhr, options) {
+                    xhr.setRequestHeader(header, token);
+                });*/
+
                 jQuery('#projectSelect').load('${enc(js:createLink(controller: 'framework', action: 'projectSelect', params: selectParams))}',{},function(x,r){
                     jQuery('#projectSelect').removeClass('disabled');
                 });

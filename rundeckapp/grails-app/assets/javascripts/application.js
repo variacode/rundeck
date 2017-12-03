@@ -22,6 +22,7 @@
 
 // methods for modifying inner html or text content
 
+
 function clearHtml(elem){
     $(elem).innerHTML = '';
 }
@@ -394,7 +395,7 @@ function _setupAceTextareaEditor(textarea, callback, autoCompleter) {
     }
 
     //add controls
-    var addSoftWrapCheckbox=data.aceControlSoftWrap?data.aceControlSoftWrap:false;
+    var addSoftWrapCheckbox=data.aceControlSoftWrap?data.aceControlSoftWrap:false
     if(addSoftWrapCheckbox){
         var _soft = jQuery('<input/>')
             .attr('type', 'checkbox')
@@ -950,6 +951,7 @@ function _initAnsiToggle(){
  * @private
  */
 function _ajaxSendTokens(id,jqxhr,settings){
+    alert("ajax send tokens")
     var elem = jQuery('#' + id);
     var data = {};
     if(elem && elem.data('rundeck-token-key') && elem.data('rundeck-token-uri')){
@@ -962,6 +964,7 @@ function _ajaxSendTokens(id,jqxhr,settings){
         jqxhr.setRequestHeader('X-RUNDECK-TOKEN-KEY',data.TOKEN);
         jqxhr.setRequestHeader('X-RUNDECK-TOKEN-URI',data.URI);
     }
+
     return true;
 }
 /**
@@ -1091,7 +1094,7 @@ function _initMarkdeep(){
         jQuery(document).ready(function () {
             jQuery.support.transition = false;
             jQuery('.has_tooltip').tooltip({});
-            jQuery('.has_popover').popover({});
+            //jQuery('.has_popover').popover({});
             _initPopoverContentRef();
             _initPopoverContentFor();
             _initAffix();

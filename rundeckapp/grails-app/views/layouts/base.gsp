@@ -27,13 +27,17 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    %{--<meta name="_csrf" content="${_csrf?.token}"/>
+    <meta name="_csrf_header" content="${_csrf?.headerName}"/>
+    --}%
     <link rel="SHORTCUT" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
     <link rel="favicon" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
     <link rel="shortcut icon" href="${g.resource(dir: 'images', file: 'favicon.ico')}"/>
     <link rel="apple-touch-icon-precomposed" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
-    <asset:stylesheet href="rundeck.css"/>
+    %{--<asset:stylesheet href="rundeck.css"/>--}%
+    <asset:stylesheet href="rundeck-temp.css"/>
     <asset:stylesheet href="ansicolor.css"/>
-    <asset:stylesheet href="github-markdown.css"/>
 
     <asset:stylesheet href="jquery-ui.css"/>
     <!--[if lt IE 9]>
@@ -126,9 +130,9 @@
 <div class="container footer">
 <g:render template="/common/footer"/>
 </div>
-<!--
+%{--<!--
 <g:profilerOutput />
--->
+-->--}%
 <miniprofiler:javascript/>
 
 <g:if test="${uiplugins && uipluginsPath && params.uiplugins!='false'}">

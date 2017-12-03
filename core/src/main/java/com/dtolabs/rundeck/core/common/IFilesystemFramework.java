@@ -38,14 +38,10 @@ public interface IFilesystemFramework {
      */
     File getLibextDir();
 
-    File getLibextDir(IFramework fwk);
-
     /**
      * @return the cache directory used by the plugin system
      */
     File getLibextCacheDir();
-
-    File getLibextCacheDir(IFramework fwk);
 
     /**
      * @return a framework property lookup for this basedir

@@ -32,7 +32,7 @@ import org.apache.log4j.Logger;
  */
 public class YamlPolicyCollection implements PolicyCollection {
     static Logger logger = Logger.getLogger(YamlPolicyCollection.class.getName());
-    private final List<Policy> all = new ArrayList<>();
+    private final Set<Policy> all = new HashSet<>();
     private final Set<AclRule> ruleSet = new HashSet<>();
     String identity;
     final ValidationSet validation;
@@ -133,8 +133,4 @@ public class YamlPolicyCollection implements PolicyCollection {
         return all.size();
     }
 
-    @Override
-    public List<Policy> getPolicies() {
-        return all;
-    }
 }

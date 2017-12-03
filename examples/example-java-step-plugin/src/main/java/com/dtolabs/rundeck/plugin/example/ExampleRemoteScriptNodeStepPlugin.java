@@ -134,7 +134,7 @@ public class ExampleRemoteScriptNodeStepPlugin implements RemoteScriptNodeStepPl
     protected String cake;
     /**
      * Here is an example of a field that sets a custom scope of "Project", which indicates that it can be configured in
-     * the Project or Framework level configuration settings to supply the value, but will not be shown
+     * the Project or Framework level configuration __settings to supply the value, but will not be shown
      */
     @PluginProperty(title = "Debug", description = "Turn on debug?", scope = PropertyScope.Project)
     protected boolean debug;

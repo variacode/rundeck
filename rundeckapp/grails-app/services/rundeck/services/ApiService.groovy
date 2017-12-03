@@ -25,12 +25,12 @@ import grails.transaction.Transactional
 import grails.web.JSONBuilder
 import groovy.xml.MarkupBuilder
 import org.apache.commons.lang.RandomStringUtils
-import org.codehaus.groovy.grails.web.converters.exceptions.ConverterException
+import org.grails.web.converters.exceptions.ConverterException
 import org.rundeck.util.Sizes
 import rundeck.AuthToken
 import rundeck.Execution
 import rundeck.User
-import rundeck.filters.ApiRequestFilters
+//import ApiRequestFilters
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -286,7 +286,7 @@ class ApiService {
     def respondOutput(HttpServletResponse response, String contentType, String output) {
         response.setContentType(contentType)
         response.setCharacterEncoding('UTF-8')
-        response.setHeader("X-Rundeck-API-Version",ApiRequestFilters.API_CURRENT_VERSION.toString())
+//        response.setHeader("X-Rundeck-API-Version",ApiRequestFilters.API_CURRENT_VERSION.toString())
         def out = response.outputStream
         out << output
         out.flush()
@@ -333,13 +333,14 @@ class ApiService {
      * @return
      */
     public boolean doWrapXmlResponse(HttpServletRequest request) {
-        if(request.api_version < ApiRequestFilters.V11){
-            //require false to disable wrapper
-            return !"false".equals(request.getHeader(XML_API_RESPONSE_WRAPPER_HEADER))
-        } else{
-            //require true to enable wrapper
-            return "true".equals(request.getHeader(XML_API_RESPONSE_WRAPPER_HEADER))
-        }
+//        if(request.api_version < ApiRequestFilters.V11){
+//            //require false to disable wrapper
+//            return !"false".equals(request.getHeader(XML_API_RESPONSE_WRAPPER_HEADER))
+//        } else{
+//            //require true to enable wrapper
+//            return "true".equals(request.getHeader(XML_API_RESPONSE_WRAPPER_HEADER))
+//        }
+        return false
     }
 
     def renderSuccessXml(HttpServletResponse response, String code, List args) {
@@ -400,13 +401,14 @@ class ApiService {
      * @deprecated
      */
     def renderSuccessXml(Closure recall){
-        return renderSuccessXmlUnwrapped {
-            result(success: "true", apiversion: ApiRequestFilters.API_CURRENT_VERSION) {
-                recall.delegate = delegate
-                recall.resolveStrategy=Closure.DELEGATE_FIRST
-                recall()
-            }
-        }
+//        return renderSuccessXmlUnwrapped {
+//            result(success: "true", apiversion: ApiRequestFilters.API_CURRENT_VERSION) {
+//                recall.delegate = delegate
+//                recall.resolveStrategy=Closure.DELEGATE_FIRST
+//                recall()
+//            }
+//        }
+        return false
     }
     /**
      * Render JSON to the response, using a builder with the closure
@@ -742,7 +744,7 @@ class ApiService {
     def renderErrorJson(messages, String code=null){
         def result=[
                 error: true,
-                apiversion: ApiRequestFilters.API_CURRENT_VERSION,
+//                apiversion: ApiRequestFilters.API_CURRENT_VERSION,
         ]
         if (code) {
             result.errorCode=code
@@ -767,28 +769,28 @@ class ApiService {
         }else{
             xml=builder
         }
-        xml.with {
-            result(error: "true", apiversion: ApiRequestFilters.API_CURRENT_VERSION) {
-                def errorprops = [:]
-                if (code) {
-                    errorprops = [code: code]
-                }
-                delegate.'error'(errorprops) {
-                    if (!messages) {
-                        delegate.'message'(messageSource.getMessage("api.error.unknown",null,null))
-                    }
-                    if (messages instanceof List) {
-                        messages.each {
-                            delegate.'message'(it)
-                        }
-                    }else if(messages instanceof Map && messages.code){
-                        delegate.'message'(messages.message?:messageSource.getMessage(messages.code, messages.args?messages.args as Object[]:null, null))
-                    }else if(messages instanceof Map && messages.message){
-                        delegate.'message'(messages.message)
-                    }
-                }
-            }
-        }
+//        xml.with {
+//            result(error: "true", apiversion: ApiRequestFilters.API_CURRENT_VERSION) {
+//                def errorprops = [:]
+//                if (code) {
+//                    errorprops = [code: code]
+//                }
+//                delegate.'error'(errorprops) {
+//                    if (!messages) {
+//                        delegate.'message'(messageSource.getMessage("api.error.unknown",null,null))
+//                    }
+//                    if (messages instanceof List) {
+//                        messages.each {
+//                            delegate.'message'(it)
+//                        }
+//                    }else if(messages instanceof Map && messages.code){
+//                        delegate.'message'(messages.message?:messageSource.getMessage(messages.code, messages.args?messages.args as Object[]:null, null))
+//                    }else if(messages instanceof Map && messages.message){
+//                        delegate.'message'(messages.message)
+//                    }
+//                }
+//            }
+//        }
         if(!builder){
             return writer.toString()
         }
@@ -1106,7 +1108,7 @@ class ApiService {
     String apiHrefForJob(def scheduledExecution) {
         return grailsLinkGenerator.link(controller: 'scheduledExecution',
                 id: scheduledExecution.extid,
-                params: [api_version:ApiRequestFilters.API_CURRENT_VERSION],
+//                params: [api_version:ApiRequestFilters.API_CURRENT_VERSION],
                 absolute: true)
     }
     String guiHrefForJob(def scheduledExecution) {
@@ -1118,7 +1120,7 @@ class ApiService {
     }
     String apiHrefForExecution(Execution execution) {
         return grailsLinkGenerator.link(controller: 'execution', id: execution.id,
-                params: [api_version: ApiRequestFilters.API_CURRENT_VERSION],
+//                params: [api_version: ApiRequestFilters.API_CURRENT_VERSION],
                 absolute: true)
     }
     String guiHrefForExecution(Execution execution) {

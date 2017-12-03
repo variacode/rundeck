@@ -33,18 +33,18 @@ import java.util.*;
  *
  * @author Greg Schueler <a href="mailto:greg@dtosolutions.com">greg@dtosolutions.com</a>
  */
-public class ContextStack<T> {
+class ContextStack<T> {
     private List<T> stack;
 
-    public ContextStack() {
+    private ContextStack() {
         stack = new ArrayList<>();
     }
 
-    public ContextStack(final List<T> stack) {
+    private ContextStack(final List<T> stack) {
         this.stack = new ArrayList<>(stack);
     }
 
-    public ContextStack(final T item) {
+    private ContextStack(final T item) {
         this.stack = new ArrayList<>(1);
         push(item);
     }

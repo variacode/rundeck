@@ -102,7 +102,9 @@ public class RuleEvaluator implements Authorization, AclRuleSetSource {
     )
     {
         if (rule.getEnvironment() != null) {
+
             final EnvironmentalContext environment1 = rule.getEnvironment();
+
             if (!environment1.isValid()) {
                 logger.warn(rule.toString() + ": Context section not valid: " + environment1.toString());
             }
@@ -117,32 +119,35 @@ public class RuleEvaluator implements Authorization, AclRuleSetSource {
             return false;
         }
 
-
         if (subject.getUsername() != null && rule.getUsername() != null) {
 
             if (subject.getUsername().equals(rule.getUsername())
                 || matchesPattern(subject.getUsername(), rule.getUsername())
                     ) {
+
                 return true;
             } else if (rule.getUsername() != null) {
+
                 if (logger.isDebugEnabled()) {
                     logger.debug(rule.toString() + ": username not matched: " + rule.getUsername());
                 }
             }
         }
 
-
         if (subject.getGroups().size() > 0) {
             // no username matched, check groups.
             if (subject.getGroups().contains(rule.getGroup())
                 || matchesAnyPatterns(subject.getGroups(), rule.getGroup())) {
+
                 return true;
             } else if (subject.getGroups().size() > 0) {
+
                 if (logger.isDebugEnabled()) {
                     logger.debug(rule.toString() + ": group not matched: " + rule.getGroup());
                 }
             }
         }
+
         return false;
     }
 
@@ -211,7 +216,9 @@ public class RuleEvaluator implements Authorization, AclRuleSetSource {
     {
         Set<Decision> decisions = new HashSet<Decision>();
         long duration = 0;
+
         List<AclRule> matchedRules = narrowContext(getRuleSet(), subjectFrom(subject), environment);
+
         for (Map<String, String> resource : resources) {
             for (String action : actions) {
                 final Decision decision = evaluate(

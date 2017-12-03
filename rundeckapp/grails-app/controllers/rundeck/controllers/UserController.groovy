@@ -16,24 +16,28 @@
 
 package rundeck.controllers
 
+import com.dtolabs.rundeck.core.authentication.Group
+import com.dtolabs.rundeck.core.authentication.Username
 import com.dtolabs.rundeck.core.authorization.AuthContext
 import com.dtolabs.rundeck.core.authorization.UserAndRolesAuthContext
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import grails.converters.JSON
 import org.rundeck.util.Sizes
+import org.rundeck.web.infosec.AuthorizationRoleSource
 import rundeck.AuthToken
 import rundeck.User
-import rundeck.filters.ApiRequestFilters
+//import ApiRequestFilters
 import rundeck.services.FrameworkService
 import rundeck.services.UserService
 
+import javax.security.auth.Subject
 import javax.servlet.http.HttpServletResponse
 
 class UserController extends ControllerBase{
 
     UserService userService
     FrameworkService frameworkService
-    def grailsApplication
+    //def grailsApplication
     def apiService
     def configurationService
 
@@ -70,12 +74,47 @@ class UserController extends ControllerBase{
     }
 
     def login = {
+        println("-------------------inside the user controller---------------------")
         if (session.user) {
             redirect(controller:'menu', action:'index')
         }
+
+//        render("Hello world")
     }
 
     def handleLogin = {
+        println 'inside the handleLogin'
+        //temporary code to pass through authentication
+//        request.remoteUser = params.j_username
+        /*session.user = params.j_username
+
+        Subject subject= new Subject();
+        subject.principals << new Username(params.j_username)
+
+        //find AuthorizationRoleSource instances
+        Map<String,AuthorizationRoleSource> type = applicationContext.getBeansOfType(AuthorizationRoleSource)
+        def roleset = new HashSet<String>()
+        type.each {name,AuthorizationRoleSource source->
+            if(source.enabled) {
+                def roles = source.getUserRoles(params.j_username, request)
+                if(roles){
+                    roleset.addAll(roles)
+                    log.debug("Accepting user role list from bean ${name} for ${params.j_username}: ${roles}")
+                }else{
+                    log.debug("Empty role list from bean ${name} for ${params.j_username}")
+                }
+            }else {
+                log.debug("Role source not enabled, bean ${name}")
+            }
+        }
+        subject.principals.addAll(roleset.collect{new Group(it)})
+
+
+        request.subject = subject
+        session.subject = subject
+        params.login = params.j_username
+        //end*/
+
         // Simple pass threw for now!
         session.user = params.login
         redirect(controller:'menu', action:'index')
@@ -134,7 +173,7 @@ class UserController extends ControllerBase{
         }
         def User u = User.findByLogin(params.login)
         if(u){
-           return redirect(action:'edit')
+            return redirect(action:'edit')
         }
         u = new User(login:params.login)
         u.dashboardPref="1,2,3,4"
@@ -144,42 +183,42 @@ class UserController extends ControllerBase{
     }
     public def store(User user){
         withForm{
-        if(user.hasErrors()){
-            flash.errors=user.errors
-            return render(view: 'edit', model: [user: user,newuser:params.newuser])
-        }
-        AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
+            if(user.hasErrors()){
+                flash.errors=user.errors
+                return render(view: 'edit', model: [user: user,newuser:params.newuser])
+            }
+            AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
 
-        if (unauthorizedResponse(user.login == session.user || frameworkService.authorizeApplicationResourceType
-                (authContext, AuthConstants.TYPE_USER, AuthConstants.ACTION_ADMIN), AuthConstants.ACTION_ADMIN, 'Users',
-                user.login)) {
-            return
-        }
+            if (unauthorizedResponse(user.login == session.user || frameworkService.authorizeApplicationResourceType
+                    (authContext, AuthConstants.TYPE_USER, AuthConstants.ACTION_ADMIN), AuthConstants.ACTION_ADMIN, 'Users',
+                    user.login)) {
+                return
+            }
 
-        def User u = User.findByLogin(user.login)
-        if(u){
-            request.errorCode = 'api.error.item.alreadyexists'
-            request.errorArgs = ['User profile', user.login]
-            return renderErrorView([:])
-        }
-        u = new User(user.properties.subMap(['login','firstName','lastName','email']))
+            def User u = User.findByLogin(user.login)
+            if(u){
+                request.errorCode = 'api.error.item.alreadyexists'
+                request.errorArgs = ['User profile', user.login]
+                return renderErrorView([:])
+            }
+            u = new User(user.properties.subMap(['login','firstName','lastName','email']))
 
-        if(!u.save(flush:true)){
-            def errmsg= u.errors.allErrors.collect { g.message(error:it) }.join("\n")
-            flash.error="Error updating user: ${errmsg}"
-            flash.message = "Error updating user: ${errmsg}"
-            flash.errors = user.errors
-            return render(view:'edit',model:[user:u])
-        }
-        flash.message="User profile updated: ${user.login}"
-        return redirect(action:'profile',params:[login: user.login])
+            if(!u.save(flush:true)){
+                def errmsg= u.errors.allErrors.collect { g.message(error:it) }.join("\n")
+                flash.error="Error updating user: ${errmsg}"
+                flash.message = "Error updating user: ${errmsg}"
+                flash.errors = user.errors
+                return render(view:'edit',model:[user:u])
+            }
+            flash.message="User profile updated: ${user.login}"
+            return redirect(action:'profile',params:[login: user.login])
         }.invalidToken {
             flash.error = g.message(code: 'request.error.invalidtoken.message')
             return render(view: 'edit', model: [user: user])
         }
     }
 
-    def apiUserData(){
+    /*def apiUserData(){
         if (!apiService.requireVersion(request, response, ApiRequestFilters.V21)) {
             return
         }
@@ -230,9 +269,9 @@ class UserController extends ControllerBase{
             def succeed = apiService.parseJsonXmlWith(request, response, [
                     xml: { xml ->
                         config = [:]
-                            config.email=xml?.email?.text()
-                            config.firstName=xml?.firstName?.text()
-                            config.lastName=xml?.lastName?.text()
+                        config.email=xml?.email?.text()
+                        config.firstName=xml?.firstName?.text()
+                        config.lastName=xml?.lastName?.text()
                     },
                     json: { json ->
                         config = json
@@ -317,14 +356,14 @@ class UserController extends ControllerBase{
         def users = User.findAll()
         withFormat {
             def xmlClosure = {
-                    users.each { u ->
-                        delegate.'user' {
-                            login(u.login)
-                            firstName(u.firstName)
-                            lastName(u.lastName)
-                            email(u.email)
-                        }
+                users.each { u ->
+                    delegate.'user' {
+                        login(u.login)
+                        firstName(u.firstName)
+                        lastName(u.lastName)
+                        email(u.email)
                     }
+                }
             }
             xml {
                 return apiService.renderSuccessXml(request, response, xmlClosure)
@@ -343,35 +382,36 @@ class UserController extends ControllerBase{
         }
 
     }
+    */
 
     public def update (User user) {
         withForm{
-        if (user.hasErrors()) {
-            flash.errors = user.errors
-            return render(view: 'edit', model: [user: user])
-        }
-        //check auth to view profile
-        //default to current user profile
-        AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
-        if(unauthorizedResponse(params.login == session.user || frameworkService.authorizeApplicationResourceType
-                (authContext, AuthConstants.TYPE_USER,
-                AuthConstants.ACTION_ADMIN), AuthConstants.ACTION_ADMIN,'User',params.login)){
-            return
-        }
-        def User u = User.findByLogin(params.login)
-        if(notFoundResponse(u,'User',params.login)){
-            return
-        }
+            if (user.hasErrors()) {
+                flash.errors = user.errors
+                return render(view: 'edit', model: [user: user])
+            }
+            //check auth to view profile
+            //default to current user profile
+            AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
+            if(unauthorizedResponse(params.login == session.user || frameworkService.authorizeApplicationResourceType
+                    (authContext, AuthConstants.TYPE_USER,
+                            AuthConstants.ACTION_ADMIN), AuthConstants.ACTION_ADMIN,'User',params.login)){
+                return
+            }
+            def User u = User.findByLogin(params.login)
+            if(notFoundResponse(u,'User',params.login)){
+                return
+            }
 
-        bindData(u,params.subMap(['firstName','lastName','email']))
+            bindData(u,params.subMap(['firstName','lastName','email']))
 
-        if(!u.save(flush:true)){
-            def errmsg= u.errors.allErrors.collect { g.message(error:it) }.join("\n")
-            request.error="Error updating user: ${errmsg}"
-            return render(view:'edit',model:[user:u])
-        }
-        flash.message="User profile updated: ${params.login}"
-        return redirect(action:'profile',params:[login:params.login])
+            if(!u.save(flush:true)){
+                def errmsg= u.errors.allErrors.collect { g.message(error:it) }.join("\n")
+                request.error="Error updating user: ${errmsg}"
+                return render(view:'edit',model:[user:u])
+            }
+            flash.message="User profile updated: ${params.login}"
+            return redirect(action:'profile',params:[login:params.login])
         }.invalidToken {
             flash.error = g.message(code: 'request.error.invalidtoken.message')
             return render(view: 'edit', model: [user: user])

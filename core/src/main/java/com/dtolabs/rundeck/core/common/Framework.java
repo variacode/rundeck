@@ -26,14 +26,14 @@ import java.io.File;
  */
 public class Framework extends FrameworkBase implements IFilesystemFramework {
 
-    private final IFilesystemFramework filesystemFramework;
+    private final FilesystemFramework filesystemFramework;
     private IFrameworkProjectMgr filesystemFrameworkProjectManager;
 
     /**
      * Standard constructor
      */
     Framework(
-            final IFilesystemFramework filesystemFramework,
+            final FilesystemFramework filesystemFramework,
             final IFrameworkProjectMgr frameworkProjectMgr,
             final IPropertyLookup lookup,
             final IFrameworkServices services,
@@ -42,13 +42,14 @@ public class Framework extends FrameworkBase implements IFilesystemFramework {
     {
         super(frameworkProjectMgr, lookup, services, iFrameworkNodes);
         this.filesystemFramework=filesystemFramework;
+        filesystemFramework.setFramework(this);
         this.setFilesystemFrameworkProjectManager(frameworkProjectMgr);
     }
     /**
      * Standard constructor
      */
     Framework(
-            final IFilesystemFramework filesystemFramework,
+            final FilesystemFramework filesystemFramework,
             final ProjectManager frameworkProjectMgr,
             final IPropertyLookup lookup,
             final IFrameworkServices services,
@@ -57,9 +58,10 @@ public class Framework extends FrameworkBase implements IFilesystemFramework {
     {
         super(frameworkProjectMgr, lookup, services, iFrameworkNodes);
         this.filesystemFramework=filesystemFramework;
+        filesystemFramework.setFramework(this);
     }
 
-    public IFilesystemFramework getFilesystemFramework() {
+    public FilesystemFramework getFilesystemFramework() {
         return filesystemFramework;
     }
 
@@ -76,15 +78,6 @@ public class Framework extends FrameworkBase implements IFilesystemFramework {
     @Override
     public File getLibextDir() {
         return getFilesystemFramework().getLibextDir(this);
-    }
-
-    @Override
-    public File getLibextDir(final IFramework fwk) {
-        return getFilesystemFramework().getLibextDir(this);
-    }
-
-    @Override
-    public File getLibextCacheDir(final IFramework fwk) {return getFilesystemFramework().getLibextCacheDir(this);
     }
 
     @Override

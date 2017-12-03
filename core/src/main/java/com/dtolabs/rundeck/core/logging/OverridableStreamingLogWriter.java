@@ -16,10 +16,7 @@
 
 package com.dtolabs.rundeck.core.logging;
 
-import com.dtolabs.rundeck.core.execution.workflow.ContextStack;
-
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * Can override the log writer sink for the current and child threads
@@ -27,13 +24,7 @@ import java.util.Optional;
  * @since 5/10/17
  */
 public class OverridableStreamingLogWriter extends FilterStreamingLogWriter {
-    private final InheritableThreadLocal<ContextStack<Optional<StreamingLogWriter>>> override = new
-            InheritableThreadLocal<ContextStack<Optional<StreamingLogWriter>>>() {
-                @Override
-                protected ContextStack<Optional<StreamingLogWriter>> initialValue() {
-                    return new ContextStack<>();
-                }
-            };
+    private final InheritableThreadLocal<StreamingLogWriter> override = new InheritableThreadLocal<>();
 
     public OverridableStreamingLogWriter(final StreamingLogWriter writer) {
         super(writer);
@@ -67,11 +58,7 @@ public class OverridableStreamingLogWriter extends FilterStreamingLogWriter {
     }
 
     public StreamingLogWriter getOverride() {
-        if (override.get().size() > 0) {
-            return override.get().peek().orElse(null);
-        } else {
-            return null;
-        }
+        return override.get();
     }
 
     /**
@@ -80,14 +67,7 @@ public class OverridableStreamingLogWriter extends FilterStreamingLogWriter {
      * @param writer writer
      */
     public void setOverride(StreamingLogWriter writer) {
-        override.get().push(Optional.ofNullable(writer));
-    }
-
-    /**
-     * Push no value onto the stack
-     */
-    public void pushEmpty() {
-        setOverride(null);
+        override.set(writer);
     }
 
     /**
@@ -96,7 +76,8 @@ public class OverridableStreamingLogWriter extends FilterStreamingLogWriter {
      * @return overriding writer, or null
      */
     public StreamingLogWriter removeOverride() {
-        StreamingLogWriter previous = override.get().pop().orElse(null);
+        StreamingLogWriter previous = override.get();
+        override.remove();
         return previous;
     }
 }

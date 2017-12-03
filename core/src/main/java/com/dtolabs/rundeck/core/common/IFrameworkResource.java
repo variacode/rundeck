@@ -36,4 +36,11 @@ public interface IFrameworkResource {
      */
     File getBaseDir();
 
+    /**
+     * @return the parent of this resource
+     */
+    IFrameworkResourceParent getParent();
+
+    boolean isValid();
+
 }

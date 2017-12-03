@@ -1,0 +1,97 @@
+
+dataSource:
+  dbCreate: update
+  url: "jdbc:h2:file:/home/parth/IdeaProjects/rundeck/test/server/data/grailsdb;MVCC=true"
+grails:
+  app:
+    context: /
+  serverURL: "http://parth-VirtualBox:8080"
+loglevel:
+  default: INFO
+rdeck:
+  base: /home/parth/IdeaProjects/rundeck/test
+rss:
+  enabled: false
+rundeck:
+  security:
+    authorization:
+      preauthenticated:
+        attributeName: REMOTE_USER_GROUPS
+        delimiter: ","
+        enabled: false
+        redirectLogout: false
+        redirectUrl: /oauth2/sign_in
+        userNameHeader: X-Forwarded-Uuid
+        userRolesHeader: X-Forwarded-Roles
+      containerPricipal:
+        enabled: true
+      container:
+        enabled: true
+
+
+#config values from Config.groovy
+    apiCookieAccess:
+      enabled: true
+    useHMacRequestTokens: true
+#meta data information
+app:
+    grails:
+        version: 3.2.9
+    name: rundeck
+    servlet:
+        version: 2.5
+    version: 2.10.1-SNAPSHOT
+
+build:
+    ident: 2.10.1-0-SNAPSHOT
+
+
+
+
+# framework.properties -
+#
+
+# ----------------------------------------------------------------
+# Rundeck server connection information
+# ----------------------------------------------------------------
+
+framework:
+    server:
+        name: localhost
+        hostname: localhost
+        port: 4440
+        url: http://localhost:4440
+
+# ----------------------------------------------------------------
+# Installation locations
+# ----------------------------------------------------------------
+    projects:
+        dir: /var/rundeck/projects
+    etc:
+        dir: /etc/rundeck
+    var:
+        dir: var/lib/rundeck/var
+    tmp:
+        dir: /var/lib/rundeck/var/tmp
+    logs:
+        dir: /var/lib/rundeck/logs
+    libext:
+        dir: /var/lib/rundeck/libext
+
+# ----------------------------------------------------------------
+# SSH defaults for node executor and file copier
+# ----------------------------------------------------------------
+
+    ssh:
+        keypath: /var/lib/rundeck/.ssh/id_rsa
+        user: rundeck
+
+# ssh connection timeout after a specified number of milliseconds.
+# "0" value means wait forever.
+        timeout: 0
+
+    rdeck:
+        base: /var/lib/rundeck
+
+
+

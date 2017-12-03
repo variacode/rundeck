@@ -40,7 +40,7 @@ import com.dtolabs.rundeck.core.plugins.configuration.PropertyScope
 import com.dtolabs.rundeck.core.plugins.configuration.Validator
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import com.dtolabs.rundeck.server.plugins.loader.ApplicationContextPluginFileSource
-import org.codehaus.groovy.grails.commons.GrailsApplication
+import grails.core.GrailsApplication
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import rundeck.Execution
@@ -186,6 +186,7 @@ class FrameworkService implements ApplicationContextAware {
         for (projName in rundeckFramework.frameworkProjectMgr.listFrameworkProjectNames()) {
             resources << authResourceForProject(projName)
         }
+
         def authed = authorizeApplicationResourceSet(authContext, resources, [AuthConstants.ACTION_READ,AuthConstants.ACTION_ADMIN] as Set)
         return new ArrayList(new HashSet(authed.collect{it.name})).sort()
     }

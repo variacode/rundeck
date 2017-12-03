@@ -901,7 +901,6 @@ function NodeFlowViewModel(workflow, outputUrl, nodeStateUpdateUrl, multiworkflo
     self.followOutputUrl= outputUrl;
     self.nodeStateUpdateUrl= nodeStateUpdateUrl;
     self.completed=ko.observable();
-    self.partial=ko.observable();
     self.executionState=ko.observable();
     self.executionStatusString=ko.observable();
     self.retryExecutionId=ko.observable();
@@ -1106,7 +1105,6 @@ function NodeFlowViewModel(workflow, outputUrl, nodeStateUpdateUrl, multiworkflo
         }
         var ctrl = new FollowControl(null, null, {
             parentElement: targetElement,
-            showClusterExecWarning: false,
             extraParams: '&' + Object.toQueryString(params),
             appLinks: {tailExecutionOutput: self.followOutputUrl},
             finishedExecutionAction: false,
@@ -1364,8 +1362,8 @@ function NodeFlowViewModel(workflow, outputUrl, nodeStateUpdateUrl, multiworkflo
         "use strict";
         flowState.addUpdater({
             updateError: function (error, data) {
+                self.stateLoaded(false);
                 if (error !== 'pending') {
-                    self.stateLoaded(false);
                     self.errorMessage(data.state.errorMessage ? data.state.errorMessage : error);
                 } else {
                     self.statusMessage(data.state.errorMessage ? data.state.errorMessage : error);
@@ -1379,7 +1377,6 @@ function NodeFlowViewModel(workflow, outputUrl, nodeStateUpdateUrl, multiworkflo
                     retryExecutionAttempt: data.retryExecutionAttempt,
                     retry: data.retry,
                     completed: data.completed,
-                    partial: data.partial,
                     execDuration: data.execDuration,
                     jobAverageDuration: data.jobAverageDuration,
                     startTime: data.startTime ? data.startTime : data.state ? data.state.startTime : null,
@@ -1396,7 +1393,6 @@ function NodeFlowViewModel(workflow, outputUrl, nodeStateUpdateUrl, multiworkflo
                     retryExecutionAttempt: data.retryExecutionAttempt,
                     retry: data.retry,
                     completed: data.completed,
-                    partial: data.partial,
                     execDuration: data.execDuration,
                     jobAverageDuration: data.jobAverageDuration,
                     startTime: data.startTime ? data.startTime : data.state ? data.state.startTime : null,

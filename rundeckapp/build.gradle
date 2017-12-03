@@ -26,7 +26,7 @@ import java.util.jar.JarInputStream
 
 /**
  * The Rundeck webapp build file
- * 
+ *
  * It's important to note that grails has it's own build system based on Gant. Rather
  * than trying to integrate Gradle directly with Gant or use one of the Gradle-Grails plugins
  * available, we're following in the steps of the Make based build and just wrapping 
@@ -35,13 +35,33 @@ import java.util.jar.JarInputStream
 
 description = 'The Rundeck Grails webapp project'
 
-apply plugin: 'groovy'
-apply plugin: 'eclipse'
-apply plugin: 'idea'
-apply plugin: 'maven'
-apply plugin: 'signing'
-apply plugin: 'com.google.osdetector'
+buildscript {
+    repositories {
+        mavenLocal()
+        maven { url "https://repo.grails.org/grails/core" }
+    }
+    dependencies {
+        classpath "org.grails:grails-gradle-plugin:$grailsVersion"
 
+        classpath "com.bertramlabs.plugins:asset-pipeline-gradle:2.14.1"
+        classpath 'com.bertramlabs.plugins:less-asset-pipeline:2.14.1'
+        classpath "org.grails.plugins:hibernate5:${gormVersion-".RELEASE"}"
+    }
+}
+
+version "0.1"
+group "rundeckapp"
+
+apply plugin:"eclipse"
+apply plugin:"idea"
+apply plugin:"war"
+apply plugin:"org.grails.grails-web"
+apply plugin:"org.grails.grails-gsp"
+apply plugin:"asset-pipeline"
+apply plugin:"maven"
+apply plugin:"signing"
+apply plugin:"com.google.osdetector"
+apply plugin:"asset-pipeline"
 
 // set the convention to rundeck:<branch>:<path>:<projectName>
 eclipse.project.name =  "${project.getParent().eclipse.project.name}:webapp"
@@ -66,6 +86,16 @@ def warFileName = "rundeck-${version}.war"
 def warFileLocation = "${project.projectDir}/target/${warFileName}"
 def additionalFileLocation = "${project.projectDir}/target/war-contents"
 
+//BuildConfig configurations --start
+def mavenCentralUrl = 'http://repo1.maven.org/maven2/'
+if (System.getProperty('maven.central.url')) {
+    mavenCentralUrl = System.getProperty('maven.central.url')
+}
+
+
+
+//BuildConfig configurations --end
+
 configurations{
     pluginFiles {
         transitive = false
@@ -78,7 +108,106 @@ allprojects {
         maven { url "https://jitpack.io" }
     }
 }
+
+repositories {
+    mavenLocal()
+    maven { url "https://repo.grails.org/grails/core" }
+}
+/*
+plugins {
+    test    ':code-coverage:2.0.3-3'
+    compile (':less-asset-pipeline:2.7.2')
+    compile ':twitter-bootstrap:3.3.2.1'
+//    compile (':asset-pipeline:2.7.2')
+    compile ':cache:1.1.8'
+    compile ":platform-core:1.0.0"
+//    runtime (':hibernate4:4.3.10')
+    runtime ':mail:1.0.7', ':quartz:1.0.2', ':executor:0.3'
+
+    runtime ':profiler:0.5'
+    runtime ':miniprofiler:0.4.1'
+    provided ':codenarc:0.22'
+    build   ':jetty:3.0.0'
+}*/
+
 dependencies {
+    compile "org.springframework.boot:spring-boot-starter-logging"
+    compile "org.springframework.boot:spring-boot-autoconfigure"
+    compile "org.grails:grails-core"
+    compile "org.springframework.boot:spring-boot-starter-actuator"
+//    compile "org.springframework.boot:spring-boot-starter-tomcat"
+    compile "org.springframework.boot:spring-boot-starter-jetty"
+    compile 'org.eclipse.jetty:jetty-jaas:9.0.0.v20130308'
+    compile "org.grails:grails-dependencies"
+    compile "org.grails:grails-web-boot"
+    compile "org.grails.plugins:cache"
+    compile "org.grails.plugins:scaffolding"
+    compile "org.grails.plugins:hibernate5"
+    compile "org.hibernate:hibernate-core:5.1.3.Final"
+    compile "org.hibernate:hibernate-ehcache:5.1.3.Final"
+    compile "com.google.guava:guava:15.0"
+    console "org.grails:grails-console"
+    profile "org.grails.profiles:web"
+    runtime "com.bertramlabs.plugins:asset-pipeline-grails:2.14.1"
+    //less plugin
+    assets "com.bertramlabs.plugins:less-asset-pipeline:2.7.2"
+    runtime "com.h2database:h2"
+    testCompile "org.grails:grails-plugin-testing"
+    testCompile "org.grails.plugins:geb"
+    testRuntime "org.seleniumhq.selenium:selenium-htmlunit-driver:2.47.1"
+    testRuntime "net.sourceforge.htmlunit:htmlunit:2.18"
+
+    //BuildConfig dependencies
+//    build 'org.yaml:snakeyaml:1.9'
+//    compile 'org.yaml:snakeyaml:1.9',
+    compile 'org.apache.ant:ant:1.8.3',
+            'org.apache.ant:ant-jsch:1.8.3',
+            'com.jcraft:jsch:0.1.54',
+            'log4j:log4j:1.2.17',
+            'commons-collections:commons-collections:3.2.2',
+            'commons-codec:commons-codec:1.5',
+            'com.fasterxml.jackson.core:jackson-databind:2.8.8.1',
+            'com.fasterxml.jackson.core:jackson-annotations:2.8.8',
+            'com.codahale.metrics:metrics-core:3.0.1',
+            'com.google.guava:guava:15.0',
+            'org.owasp.encoder:encoder:1.2',
+            'org.quartz-scheduler:quartz:2.2.1',
+            'org.markdownj:markdownj-core:0.4',
+            'com.atlassian.commonmark:commonmark:0.9.0',
+            'com.atlassian.commonmark:commonmark-ext-gfm-tables:0.9.0',
+            'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20160614.1'
+
+    //profiler plugin
+    compile "org.grails.plugins:profiler:0.5"
+
+    //spring security
+    compile("org.springframework.boot:spring-boot-starter-security")
+
+    //quartz plugin
+    compile 'org.grails.plugins:quartz:2.0.1'
+
+    runtime 'org.postgresql:postgresql:42.0.0'
+    runtime 'mysql:mysql-connector-java:5.1.35'
+
+    //BEGIN fix hibernate4 bug with dateCreated auto timestamp, see: https://jira.grails.org/browse/GPHIB-30
+    compile "javax.validation:validation-api:1.1.0.Final"
+    runtime "org.hibernate:hibernate-validator:5.0.3.Final"
+    //END fix for https://jira.grails.org/browse/GPHIB-30
+    runtime 'com.h2database:h2:1.4.193'
+
+    compile "org.grails.plugins:platform-core:1.0.0"
+
+    //plugin for the filters
+    compile 'org.grails:grails-plugin-filters:3.0.12'
+
+    //end
+
+
+    compile project(":core")
+    compile project(":rundeck-storage")
+//    compile project(":rundeckapp:metricsweb")
+//    compile project(":rundeck-launcher")
+
     pluginFiles project(':plugins:script-plugin'),
             project(':plugins:stub-plugin'),
             project(':plugins:localexec-plugin'),
@@ -91,6 +220,14 @@ dependencies {
             project(':plugins:source-refresh-plugin'),
             "com.github.Batix:rundeck-ansible-plugin:2.0.2"
 }
+
+grails {
+    plugins {
+        compile project(":rundeckapp:metricsweb")
+        compile project(":rundeckapp:Webrealms")
+    }
+}
+
 
 task('copyPluginLibs').dependsOn(configurations.pluginFiles).doLast {
     File libextDir = new File(additionalFileLocation, "WEB-INF/rundeck/plugins")
@@ -204,11 +341,11 @@ task('installDependencies').dependsOn(projDeps).doLast {
 
 /**
  * Installs the jetty-plugin into the .grails folder
-
+ */
 task installJettyPlugin(type: Exec, dependsOn: [extractGrails]) {
     def jettyPluginVersion = '2.0.3'
     def jettyPluginInstalled = "${System.properties['user.home']}/.grails/${grailsVersion}/projects/rundeckapp/plugins/jetty-${jettyPluginVersion}"
-    
+
     inputs.dir file(grailsHome)
     outputs.dir file(jettyPluginInstalled)
 
@@ -225,7 +362,7 @@ task installJettyPlugin(type: Exec, dependsOn: [extractGrails]) {
             jettyPluginVersion
 }
 
- */
+
 
 task cleanWar(type: Delete) {
     delete file(warFileLocation), file("${project.projectDir}/target")
@@ -367,11 +504,11 @@ def deploypom=pom {
             developerConnection 'scm:git:git@github.com:dtolabs/rundeck.git'
         }
         developers {
-          developer {
-            id('gschueler')
-            name('Greg Schueler')
-            email('greg@dtosolutions.com')
-          }
+            developer {
+                id('gschueler')
+                name('Greg Schueler')
+                email('greg@dtosolutions.com')
+            }
         }
         parent {
             groupId('org.sonatype.oss')
@@ -412,7 +549,7 @@ uploadArchives {
             if(isReleaseBuild){
                 beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
             }
- 
+
             configuration = configurations.archives
             if(project.hasProperty('sonatypeUsername') && project.hasProperty('sonatypePassword')){
                 repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2') {
@@ -425,4 +562,18 @@ uploadArchives {
             pom=deploypom
         }
     }
+}
+
+
+bootRun {
+    jvmArgs('-Dspring.output.ansi.enabled=always','-Drundeck.config.location=rundeck-config')
+    addResources = true
+}
+
+
+assets {
+    minifyJs = false
+    minifyCss = false
+    excludes = ['**/*.less']
+    includes = ['bootstrap.less']
 }

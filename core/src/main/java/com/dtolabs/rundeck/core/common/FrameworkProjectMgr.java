@@ -20,12 +20,11 @@ import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Filesystem based project manager
  */
-public class FrameworkProjectMgr extends FrameworkResource implements IFrameworkProjectMgr {
+public class FrameworkProjectMgr extends FrameworkResourceParent implements IFrameworkProjectMgr {
     static final String PROJECTMGR_NAME = "frameworkProjectMgr";
 
     public static final Logger log = Logger.getLogger(FrameworkProjectMgr.class);
@@ -48,26 +47,19 @@ public class FrameworkProjectMgr extends FrameworkResource implements IFramework
             final IProjectNodesFactory nodesFactory
     )
     {
-        super(name, baseDir);
+        super(name, baseDir, null);
         this.filesystemFramework = filesystemFramework;
         this.nodesFactory=nodesFactory;
     }
 
-    /**
-     * Base constructor
-     *
-     * @param name                Name of manager. informational purposes
-     * @param baseDir             Basedir where child resources live
-     * @param filesystemFramework Framework instance
-     */
-    FrameworkProjectMgr(
+    static FrameworkProjectMgr create(
             final String name,
             final File baseDir,
-            final FilesystemFramework filesystemFramework
+            final Framework framework,
+            final IProjectNodesFactory nodesFactory
     )
     {
-        super(name, baseDir);
-        this.filesystemFramework = filesystemFramework;
+        return FrameworkFactory.createProjectManager(baseDir, framework.getFilesystemFramework(), nodesFactory);
     }
 
 
@@ -158,7 +150,7 @@ public class FrameworkProjectMgr extends FrameworkResource implements IFramework
     @Override
     public void removeFrameworkProject(final String projectName){
         synchronized (projectCache) {
-            removeSubDir(projectName);
+            super.remove(projectName);
             projectCache.remove(projectName);
         }
     }
@@ -170,23 +162,9 @@ public class FrameworkProjectMgr extends FrameworkResource implements IFramework
         return listChildren();
     }
 
-    private Collection<IRundeckProject> listChildren() {
-        return listChildDirs().stream()
-                              .map(file -> createFrameworkProjectInt(file.getName()))
-                              .collect(Collectors.toList());
-    }
-
     @Override
     public Collection<String> listFrameworkProjectNames() {
         return new TreeSet<>(listChildNames());
-    }
-
-    public List<String> listChildNames() {
-        return listSubdirs().stream().filter(this::isValidProjectDir).map(File::getName).collect(Collectors.toList());
-    }
-
-    private List<File> listChildDirs() {
-        return listSubdirs().stream().filter(this::isValidProjectDir).collect(Collectors.toList());
     }
 
     /**
@@ -195,11 +173,11 @@ public class FrameworkProjectMgr extends FrameworkResource implements IFramework
      * @param name The name of the project
      */
     public FrameworkProject getFrameworkProject(final String name) {
-        FrameworkProject frameworkProject = loadChild(name);
-        if (null != frameworkProject) {
-            return frameworkProject;
+        try {
+            return (FrameworkProject)getChild(name);
+        } catch (NoSuchResourceException e) {
+            throw new NoSuchResourceException("Project does not exist: " + name, this);
         }
-        throw new NoSuchResourceException("Project does not exist: " + name, this);
     }
 
     @Override
@@ -218,22 +196,13 @@ public class FrameworkProjectMgr extends FrameworkResource implements IFramework
      * @param project The name of the project
      */
     public boolean existsFrameworkProject(final String project) {
-        if (null == project) {
-            throw new NullPointerException("project paramater was null");
-        }
+        if (null == project) throw new IllegalArgumentException("project paramater was null");
         return existsChild(project);
     }
 
-    private boolean existsChild(final String project) {
-        return existsSubdir(project) && isValidProjectDir(new File(getBaseDir(), project));
-    }
-
-    private boolean isValidProjectDir(final File dir) {
-        return new File(dir, "etc/project.properties").isFile();
-    }
-
+    @Override
     public boolean childCouldBeLoaded(final String name) {
-        return existsChild(name);
+        return super.childCouldBeLoaded(name) && new File(getBaseDir(), name + "/etc/project.properties").exists();
     }
 
     public String toString() {
@@ -248,8 +217,11 @@ public class FrameworkProjectMgr extends FrameworkResource implements IFramework
         return new Properties();
     }
 
+    public IFrameworkResource createChild(final String projectName) {
+        return createFSFrameworkProject(projectName);
+    }
 
-    public FrameworkProject loadChild(String name) {
+    public IFrameworkResource loadChild(String name) {
         if (childCouldBeLoaded(name) ) {
             return createFrameworkProjectInt(name);
         }else{
@@ -258,11 +230,4 @@ public class FrameworkProjectMgr extends FrameworkResource implements IFramework
     }
 
 
-    public IProjectNodesFactory getNodesFactory() {
-        return nodesFactory;
-    }
-
-    public void setNodesFactory(IProjectNodesFactory nodesFactory) {
-        this.nodesFactory = nodesFactory;
-    }
 }

@@ -42,7 +42,7 @@ import com.dtolabs.rundeck.server.plugins.services.StorageConverterPluginProvide
 import com.dtolabs.rundeck.server.plugins.services.StoragePluginProviderService
 import grails.converters.JSON
 import groovy.xml.MarkupBuilder
-import org.grails.plugins.metricsweb.MetricService
+import metricsweb.MetricService
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.web.multipart.MultipartHttpServletRequest
@@ -120,6 +120,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             query.recentFilter="1h"
             params.recentFilter="1h"
         }
+
         if(!query.projFilter && params.project){
             query.projFilter=params.project
         }
@@ -221,6 +222,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
          * redirect to configured start page, or default page
          */
 
+        println params
         if (!params.project) {
             return redirect(controller: 'menu', action: 'home')
         }
@@ -2032,11 +2034,11 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
     def home() {
         //first-run html info
         def isFirstRun=false
-
         if(configurationService.getBoolean("startup.detectFirstRun",true) &&
                 frameworkService.rundeckFramework.hasProperty('framework.var.dir')) {
+
             def vardir = frameworkService.rundeckFramework.getProperty('framework.var.dir')
-            def vers = grailsApplication.metadata['build.ident'].replaceAll('\\s+\\(.+\\)$','')
+            def vers = grailsApplication.config.getProperty('build.ident').replaceAll('\\s+\\(.+\\)$','')
             def file = new File(vardir, ".first-run-${vers}")
             if(!file.exists()){
                 isFirstRun=true
@@ -2048,8 +2050,11 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         long start = System.currentTimeMillis()
         def fprojects = frameworkService.projectNames(authContext)
+
+        println '--------------------------fprojects: ' + fprojects
+
         session.frameworkProjects = fprojects
-        log.debug("frameworkService.projectNames(context)... ${System.currentTimeMillis() - start}")
+        log.info("frameworkService.projectNames(context)... ${System.currentTimeMillis() - start}")
         def stats=cachedSummaryProjectStats(fprojects)
 
         render(view: 'home', model: [

@@ -49,6 +49,7 @@ import rundeck.services.logging.ExecutionFileProducer
 import rundeck.services.logging.ExecutionLogState
 import rundeck.services.logging.ProducedExecutionFile
 import rundeck.services.logging.WorkflowStateFileLoader
+import rundeck.services.services.ExecutionServiceValidationException
 import rundeck.services.workflow.StateMapping
 
 import java.nio.file.Files

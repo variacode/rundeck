@@ -29,7 +29,7 @@
     <link rel="favicon" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
     <link rel="shortcut icon" href="${g.resource(dir: 'images', file: 'favicon.ico')}"/>
     <link rel="apple-touch-icon-precomposed" href="${g.resource(dir: 'images', file: 'favicon-152.png')}"/>
-    <asset:stylesheet href="rundeck.css"/>
+    <asset:stylesheet href="rundeck-temp.css"/>
     <!--[if lt IE 9]>
     <g:javascript library="respond.min"/>
     <![endif]-->
@@ -58,8 +58,7 @@
 <div class="col-sm-4 col-sm-push-4">
     <div class="panel panel-primary ">
         <div class="panel-body">
-        <form action="j_security_check" method="post" class="form " role="form">
-
+        <form action="/user/login" method="post" class="form " role="form">
             <g:set var="loginhtml" value="${grailsApplication.config.rundeck?.gui?.login?.welcomeHtml ?: ''}"/>
             <g:if test="${loginhtml}">
             <div class="row">
@@ -81,12 +80,12 @@
             </g:if>
             <div class="form-group">
                 <label for="login">Username</label>
-                <input type="text" name="j_username" id="login" class="form-control" autofocus="true"/>
+                <input type="text" name="username" id="login" class="form-control" autofocus="true"/>
             </div>
-
+            %{--<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />--}%
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" name="j_password" id="password" class="form-control"/>
+                <input type="password" name="password" id="password" class="form-control"/>
             </div>
 
             <div class="form-group">

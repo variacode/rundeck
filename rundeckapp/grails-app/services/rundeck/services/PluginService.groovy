@@ -311,7 +311,7 @@ class PluginService {
         listPlugins(clazz, rundeckPluginRegistry?.createPluggableService(clazz))
     }
     /**
-     * @param clazz
+     * @param clazzRenamedDescription
      * @param service
      * @return map of [name: DescribedPlugin]
      */

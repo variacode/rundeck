@@ -27,7 +27,7 @@
             </div>
 
             <div class="modal-body" id="${modalid}_content">
-                ${content}${raw(body())}
+                ${content}
             </div>
 
             <div class="modal-footer" id="${modalid}_footer">

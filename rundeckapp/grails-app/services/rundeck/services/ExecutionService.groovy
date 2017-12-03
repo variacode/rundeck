@@ -49,12 +49,12 @@ import com.dtolabs.rundeck.plugins.ServiceNameConstants
 import com.dtolabs.rundeck.plugins.logging.LogFilterPlugin
 import com.dtolabs.rundeck.plugins.scm.JobChangeEvent
 import com.dtolabs.rundeck.server.authorization.AuthConstants
-import grails.events.Listener
+//import grails.events.Listener
 import groovy.transform.ToString
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.Logger
 import org.apache.log4j.MDC
-import org.codehaus.groovy.grails.web.mapping.LinkGenerator
+import grails.web.mapping.LinkGenerator
 import org.hibernate.StaleObjectStateException
 import org.rundeck.storage.api.StorageException
 import org.springframework.context.ApplicationContext
@@ -64,11 +64,13 @@ import org.springframework.validation.ObjectError
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.servlet.support.RequestContextUtils as RCU
 import rundeck.*
-import rundeck.filters.ApiRequestFilters
+//import ApiRequestFilters
 import rundeck.services.events.ExecutionPrepareEvent
 import rundeck.services.events.ExecutionCompleteEvent
 import rundeck.services.logging.ExecutionLogWriter
 import rundeck.services.logging.LoggingThreshold
+import rundeck.services.services.ExecutionServiceException
+import rundeck.services.services.ExecutionServiceValidationException
 
 import javax.annotation.PreDestroy
 import javax.servlet.http.HttpServletRequest
@@ -169,33 +171,33 @@ class ExecutionService implements ApplicationContextAware, StepExecutor, NodeSte
      */
 
     public def respondExecutionsXml(HttpServletRequest request,HttpServletResponse response, List<Execution> executions, paging = [:]) {
-        def apiv14=request.api_version>=ApiRequestFilters.V14
-        return apiService.respondExecutionsXml(request,response,executions.collect { Execution e ->
-                def data=[
-                        execution: e,
-                        href: apiv14?apiService.apiHrefForExecution(e):apiService.guiHrefForExecution(e),
-                        status: getExecutionState(e),
-                        summary: summarizeJob(e.scheduledExecution, e)
-                ]
-                if(apiv14){
-                    data.permalink=apiService.guiHrefForExecution(e)
-                }
-            if(e.customStatusString){
-                data.customStatus=e.customStatusString
-            }
-                if(e.retryExecution) {
-                    data.retryExecution = [
-                            id    : e.retryExecution.id,
-                            href  : apiv14 ? apiService.apiHrefForExecution(e.retryExecution) :
-                                    apiService.guiHrefForExecution(e.retryExecution),
-                            status: getExecutionState(e.retryExecution),
-                    ]
-                    if (apiv14) {
-                        data.retryExecution.permalink = apiService.guiHrefForExecution(e.retryExecution)
-                    }
-                }
-                data
-            }, paging)
+//        def apiv14=request.api_version>=ApiRequestFilters.V14
+//        return apiService.respondExecutionsXml(request,response,executions.collect { Execution e ->
+//                def data=[
+//                        execution: e,
+//                        href: apiv14?apiService.apiHrefForExecution(e):apiService.guiHrefForExecution(e),
+//                        status: getExecutionState(e),
+//                        summary: summarizeJob(e.scheduledExecution, e)
+//                ]
+//                if(apiv14){
+//                    data.permalink=apiService.guiHrefForExecution(e)
+//                }
+//            if(e.customStatusString){
+//                data.customStatus=e.customStatusString
+//            }
+//                if(e.retryExecution) {
+//                    data.retryExecution = [
+//                            id    : e.retryExecution.id,
+//                            href  : apiv14 ? apiService.apiHrefForExecution(e.retryExecution) :
+//                                    apiService.guiHrefForExecution(e.retryExecution),
+//                            status: getExecutionState(e.retryExecution),
+//                    ]
+//                    if (apiv14) {
+//                        data.retryExecution.permalink = apiService.guiHrefForExecution(e.retryExecution)
+//                    }
+//                }
+//                data
+//            }, paging)
     }
     public def respondExecutionsJson(HttpServletRequest request,HttpServletResponse response, List<Execution> executions, paging = [:]) {
         return apiService.respondExecutionsJson(request,response,executions.collect { Execution e ->
@@ -2195,13 +2197,13 @@ class ExecutionService implements ApplicationContextAware, StepExecutor, NodeSte
         multijobflag.putIfAbsent(id, object) ?: object
     }
 
-    @Listener
+    /*@Listener
     def jobChanged(StoredJobChangeEvent e) {
         if (e.eventType == JobChangeEvent.JobChangeEventType.DELETE) {
             //clear multijob sync object
             multijobflag?.remove(e.originalJobReference.id)
         }
-    }
+    }*/
     /**
      * Create an execution
      * @param se
@@ -2209,7 +2211,7 @@ class ExecutionService implements ApplicationContextAware, StepExecutor, NodeSte
      * @param input, map of input overrides, allowed keys: loglevel: String, argString: String, node(Include|Exclude)
      * .*: String, _replaceNodeFilters:true/false, filter: String, retryAttempt: Integer
      * @return
-     * @throws ExecutionServiceException
+     * @throws com.dtolabs.rundeck.core.execution.service.ExecutionServiceException
      */
     def Execution createExecution(
             ScheduledExecution se,

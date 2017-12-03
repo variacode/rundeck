@@ -42,9 +42,4 @@ public interface StorageFile {
      * @return last modified date
      */
     Date getLastModified();
-
-    /**
-     * @return true if the file is complete
-     */
-    boolean isComplete();
 }

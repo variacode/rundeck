@@ -1,6 +1,6 @@
 import org.gradle.plugins.signing.Sign
 /**
- * Common build settings for java projects
+ * Common build __settings for java projects
  */
 apply plugin: 'java';
 apply plugin: 'maven';
