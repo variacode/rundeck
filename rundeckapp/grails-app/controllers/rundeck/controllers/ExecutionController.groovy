@@ -36,7 +36,7 @@ import com.dtolabs.rundeck.plugins.logs.ContentConverterPlugin
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import com.dtolabs.rundeck.server.plugins.DescribedPlugin
 import grails.converters.JSON
-import org.codehaus.groovy.grails.web.mapping.LinkGenerator
+import grails.web.mapping.LinkGenerator
 import rundeck.CommandExec
 import rundeck.Execution
 import rundeck.ScheduledExecution
