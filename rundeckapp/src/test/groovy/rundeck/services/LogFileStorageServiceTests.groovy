@@ -16,6 +16,12 @@
 
 package rundeck.services
 
+import grails.config.Config
+import groovy.mock.interceptor.MockFor
+import groovy.mock.interceptor.StubFor
+
+import static org.junit.Assert.*
+
 import com.dtolabs.rundeck.app.internal.logging.FSStreamingLogReader
 import com.dtolabs.rundeck.app.internal.logging.FSStreamingLogWriter
 import com.dtolabs.rundeck.core.logging.ExecutionFileStorageOptions
@@ -32,7 +38,9 @@ import com.dtolabs.rundeck.plugins.logging.ExecutionFileStoragePlugin
 import grails.test.mixin.Mock
 import grails.test.mixin.TestFor
 import grails.test.runtime.DirtiesRuntime
-import org.grails.web.mapping.LinkGenerator
+import grails.web.mapping.LinkGenerator
+
+//import org.grails.web.mapping.LinkGenerator
 import org.springframework.context.ApplicationContext
 import rundeck.Execution
 import rundeck.LogFileStorageRequest
@@ -60,9 +68,9 @@ class LogFileStorageServiceTests  {
      * utility method to mock a class
      */
     private mockWith(Class clazz, Closure clos) {
-        def mock = mockFor(clazz)
+        def mock = new MockFor(clazz)
         mock.demand.with(clos)
-        return mock.createMock()
+        return mock.proxyInstance()
     }
 
     public void setUp() {
@@ -154,21 +162,21 @@ class LogFileStorageServiceTests  {
         assertFalse(service.isResultCacheItemAllowedRetry([time: new Date(), count: 10]))
     }
     void testGetFileForLocalPath(){
-        def fmock = mockFor(FrameworkService)
+        def fmock = new MockFor(FrameworkService)
         fmock.demand.getFrameworkProperties() {->
             PropertyResolverFactory.instanceRetriever('framework.logs.dir': '/tmp/logs')
         }
-        service.frameworkService = fmock.createMock()
+        service.frameworkService = fmock.proxyInstance()
         def result = service.getFileForLocalPath("abc")
         assertNotNull(result)
         assertEquals(new File("/tmp/logs/rundeck/abc"),result)
     }
     void testGetFileForLocalPathNotFound(){
-        def fmock = mockFor(FrameworkService)
+        def fmock = new MockFor(FrameworkService)
         fmock.demand.getFrameworkProperties() {->
             PropertyResolverFactory.instanceRetriever([:])
         }
-        service.frameworkService = fmock.createMock()
+        service.frameworkService = fmock.proxyInstance()
         try {
             def result = service.getFileForLocalPath("abc")
             fail("Expected exception")
@@ -177,7 +185,7 @@ class LogFileStorageServiceTests  {
         }
     }
     void testCacheResult(){
-        grailsApplication.config=[:]
+        grailsApplication.config=new ConfigObject()
         grailsApplication.config.rundeck.execution.logs.fileStoragePlugin = "test1"
 
         service.configurationService=mockWith(ConfigurationService){
@@ -198,7 +206,7 @@ class LogFileStorageServiceTests  {
         assertNotNull(result1)
     }
     void testCacheResultDefaults(){
-        grailsApplication.config=[:]
+        grailsApplication.config=new ConfigObject()
         grailsApplication.config.rundeck.execution.logs.fileStoragePlugin = "test1"
         service.configurationService=mockWith(ConfigurationService){
             getString{String prop,String defval->'test1'}
@@ -222,7 +230,7 @@ class LogFileStorageServiceTests  {
         grailsApplication.config.clear()
         Execution e = new Execution(argString: "-test args", user: "testuser", project: "testproj", loglevel: 'WARN', doNodedispatch: false)
         assertNotNull(e.save())
-        def fmock = mockFor(FrameworkService)
+        def fmock = new MockFor(FrameworkService)
         fmock.demand.getFrameworkProperties() {->
             PropertyResolverFactory.instanceRetriever('framework.logs.dir': '/tmp/logs')
         }
@@ -240,7 +248,7 @@ class LogFileStorageServiceTests  {
         ExecutionService.metaClass.static.generateExecutionURL= { Execution execution, LinkGenerator grailsLinkGenerator ->
             ''
         }
-        service.frameworkService=fmock.createMock()
+        service.frameworkService=fmock.proxyInstance()
 
         def writer = service.getLogFileWriterForExecution(e, [:])
         assertNotNull(writer)
@@ -250,7 +258,7 @@ class LogFileStorageServiceTests  {
         grailsApplication.config.clear()
         Execution e = new Execution(argString: "-test args", user: "testuser", project: "testproj", loglevel: 'WARN', doNodedispatch: false)
         assertNotNull(e.save())
-        def fmock = mockFor(FrameworkService)
+        def fmock = new MockFor(FrameworkService)
         fmock.demand.getFrameworkProperties() {->
             PropertyResolverFactory.instanceRetriever('framework.logs.dir': '/tmp/logs')
         }
@@ -268,7 +276,7 @@ class LogFileStorageServiceTests  {
         ExecutionService.metaClass.static.generateExecutionURL= { Execution execution, LinkGenerator grailsLinkGenerator ->
             ''
         }
-        service.frameworkService=fmock.createMock()
+        service.frameworkService=fmock.proxyInstance()
         def test = new LoggingThreshold()
         assertNull(test.valueHolder)
         def writer = service.getLogFileWriterForExecution(e, [:],test)
@@ -395,14 +403,14 @@ class LogFileStorageServiceTests  {
 
     private StreamingLogWriter performWriterRequest(testStoragePlugin test, Execution e, Closure clos=null) {
         assertNotNull(e.save())
-        def fmock = mockFor(FrameworkService)
+        def fmock = new MockFor(FrameworkService)
         fmock.demand.getFrameworkProperties() {->
             PropertyResolverFactory.instanceRetriever('framework.logs.dir': '/tmp/logs')
         }
         fmock.demand.getFrameworkPropertyResolver() { project ->
             assert project == "testprojz"
         }
-        def pmock = mockFor(PluginService)
+        def pmock = new MockFor(PluginService)
         pmock.demand.configurePlugin(2..2) { String pname, PluggableProviderService psvc, PropertyResolver resolv, PropertyScope scope ->
             assertEquals("test1", pname)
             assert scope == PropertyScope.Instance
@@ -417,8 +425,8 @@ class LogFileStorageServiceTests  {
         ExecutionService.metaClass.static.generateExecutionURL= { Execution execution, LinkGenerator grailsLinkGenerator ->
             ''
         }
-        service.frameworkService = fmock.createMock()
-        service.pluginService = pmock.createMock()
+        service.frameworkService = fmock.proxyInstance()
+        service.pluginService = pmock.proxyInstance()
 
         assertEquals(0, LogFileStorageRequest.list().size())
         if(null!=clos){
@@ -745,12 +753,12 @@ class LogFileStorageServiceTests  {
         test.storeLogFileSuccess=false
         LogFileStorageService svc
         boolean queued=false
-        def sched = mockFor(ScheduledExecutorService)
+        def sched = new MockFor(ScheduledExecutorService)
         sched.demand.schedule() { Closure clos, long delay, TimeUnit unit ->
             queued=true
             assertEquals(30,delay)
         }
-        service.scheduledExecutor = sched.createMock()
+        service.scheduledExecutor = sched.proxyInstance()
         Map task=performRunStorage(test, "rdlog", createExecution(), testLogFile1) { LogFileStorageService service ->
             svc = service
             assertFalse(test.storeLogFileCalled)
@@ -785,11 +793,11 @@ class LogFileStorageServiceTests  {
 
     private Map performRunStorage(testStoragePlugin test, String filetype, Execution e, File testfile, Closure clos = null) {
         assertNotNull(e.save())
-        def fmock = mockFor(FrameworkService)
+        def fmock = new MockFor(FrameworkService)
         fmock.demand.getFrameworkPropertyResolver() { project ->
             assert project == "testprojz"
         }
-        def pmock = mockFor(PluginService)
+        def pmock = new MockFor(PluginService)
         pmock.demand.configurePlugin(2..2) { String pname, PluggableProviderService psvc, PropertyResolver resolv, PropertyScope scope ->
             assertEquals("test1", pname)
             assert scope == PropertyScope.Instance
@@ -801,8 +809,8 @@ class LogFileStorageServiceTests  {
             emock.executeCalled=true
             assertNotNull(cls)
         }
-        service.frameworkService = fmock.createMock()
-        service.pluginService = pmock.createMock()
+        service.frameworkService = fmock.proxyInstance()
+        service.pluginService = pmock.proxyInstance()
         service.executorService=emock
         def filetypes = filetype.split(',')
         if(filetype=='*'){
@@ -814,11 +822,11 @@ class LogFileStorageServiceTests  {
         }
 
 
-        def appmock = mockFor(ApplicationContext)
+        def appmock = new MockFor(ApplicationContext)
         appmock.demand.getBeansOfType(1..1){Class clazz->
             loggingBeans
         }
-        service.applicationContext=appmock.createMock()
+        service.applicationContext=appmock.proxyInstance()
         service.configurationService=mockWith(ConfigurationService){
             getBoolean{String prop,boolean defval->false}
             getString{String prop,String defval->'test1'}
@@ -874,11 +882,11 @@ class LogFileStorageServiceTests  {
 
     void prepareSubmitForStorage(test){
 
-        def fmock = mockFor(FrameworkService)
+        def fmock = new MockFor(FrameworkService)
         fmock.demand.getFrameworkPropertyResolver() { project ->
             assert project == "testprojz"
         }
-        def pmock = mockFor(PluginService)
+        def pmock = new MockFor(PluginService)
         pmock.demand.configurePlugin(2..2) { String pname, PluggableProviderService psvc, PropertyResolver resolv, PropertyScope scope ->
             assertEquals("test1", pname)
             assert scope == PropertyScope.Instance
@@ -900,8 +908,8 @@ class LogFileStorageServiceTests  {
             emock.executeCalled=true
             assertNotNull(cls)
         }
-        service.frameworkService = fmock.createMock()
-        service.pluginService = pmock.createMock()
+        service.frameworkService = fmock.proxyInstance()
+        service.pluginService = pmock.proxyInstance()
         service.executorService=emock
 
     }
@@ -1140,15 +1148,15 @@ class LogFileStorageServiceTests  {
         e.outputfilepath = "/test/file/path.rdlog"
         e.id=123
 
-        def fwkMock = mockFor(FrameworkService)
+        def fwkMock = new MockFor(FrameworkService)
         fwkMock.demand.getFrameworkProperties(1..1){->
             new Properties(['framework.logs.dir':'/test2/logs'])
         }
-        service.frameworkService=fwkMock.createMock()
+        service.frameworkService=fwkMock.proxyInstance()
 
         def file = service.getFileForExecutionFiletype(e, "json.state", false, false)
         assertNotNull(file)
-        assertEquals("/test2/logs/rundeck/${e.project}/run/logs/${e.id}.json.state", file.absolutePath)
+        assertEquals("/test2/logs/rundeck/${e.project}/run/logs/${e.id}.json.state".toString(), file.absolutePath)
     }
     void testGetFileForExecutionFileLogFile() {
 
@@ -1160,15 +1168,15 @@ class LogFileStorageServiceTests  {
         e.outputfilepath = "/test/file/path.rdlog"
         e.id=123
 
-        def fwkMock = mockFor(FrameworkService)
+        def fwkMock = new MockFor(FrameworkService)
         fwkMock.demand.getFrameworkProperties(1..1){->
             new Properties(['framework.logs.dir':'/test2/logs'])
         }
-        service.frameworkService=fwkMock.createMock()
+        service.frameworkService=fwkMock.proxyInstance()
 
         def file = service.getFileForExecutionFiletype(e, "rdlog", false, false)
         assertNotNull(file)
-        assertEquals("/test2/logs/rundeck/${e.project}/run/logs/${e.id}.rdlog", file.absolutePath)
+        assertEquals("/test2/logs/rundeck/${e.project}/run/logs/${e.id}.rdlog".toString(), file.absolutePath)
     }
 
     void testGetFileForExecutionFileLogFileForJob() {
@@ -1181,15 +1189,15 @@ class LogFileStorageServiceTests  {
         e.outputfilepath = "/test/file/path.rdlog"
         e.id=123
 
-        def fwkMock = mockFor(FrameworkService)
+        def fwkMock = new MockFor(FrameworkService)
         fwkMock.demand.getFrameworkProperties(1..1){->
             new Properties(['framework.logs.dir':'/test2/logs'])
         }
-        service.frameworkService=fwkMock.createMock()
+        service.frameworkService=fwkMock.proxyInstance()
 
         def file = service.getFileForExecutionFiletype(e, "rdlog", false, false)
         assertNotNull(file)
-        assertEquals("/test2/logs/rundeck/${e.project}/job/test-uuid/logs/${e.id}.rdlog", file.absolutePath)
+        assertEquals("/test2/logs/rundeck/${e.project}/job/test-uuid/logs/${e.id}.rdlog".toString(), file.absolutePath)
     }
 
     void testGetFileForExecutionFileStateFileForJob() {
@@ -1202,15 +1210,15 @@ class LogFileStorageServiceTests  {
         e.outputfilepath = "/test/file/path.rdlog"
         e.id=123
 
-        def fwkMock = mockFor(FrameworkService)
+        def fwkMock = new MockFor(FrameworkService)
         fwkMock.demand.getFrameworkProperties(1..1){->
             new Properties(['framework.logs.dir':'/test2/logs'])
         }
-        service.frameworkService=fwkMock.createMock()
+        service.frameworkService=fwkMock.proxyInstance()
 
         def file = service.getFileForExecutionFiletype(e, "json.state", false, false)
         assertNotNull(file)
-        assertEquals("/test2/logs/rundeck/${e.project}/job/test-uuid/logs/${e.id}.json.state", file.absolutePath)
+        assertEquals("/test2/logs/rundeck/${e.project}/job/test-uuid/logs/${e.id}.json.state".toString(), file.absolutePath)
     }
 
 
@@ -1225,11 +1233,11 @@ class LogFileStorageServiceTests  {
         e.outputfilepath = "/test/file/path.rdlog"
         e.id=123
 
-        def fwkMock = mockFor(FrameworkService)
+        def fwkMock = new MockFor(FrameworkService)
         fwkMock.demand.getFrameworkProperties(1..1){->
             new Properties(['framework.logs.dir':'/test2/logs'])
         }
-        service.frameworkService=fwkMock.createMock()
+        service.frameworkService=fwkMock.proxyInstance()
 
         def file = service.getFileForExecutionFiletype(e, "rdlog", true, false)
         assertNotNull(file)
@@ -1246,11 +1254,11 @@ class LogFileStorageServiceTests  {
         e.outputfilepath = "/test/file/path.rdlog"
         e.id=123
 
-        def fwkMock = mockFor(FrameworkService)
+        def fwkMock = new MockFor(FrameworkService)
         fwkMock.demand.getFrameworkProperties(1..1){->
             new Properties(['framework.logs.dir':'/test2/logs'])
         }
-        service.frameworkService=fwkMock.createMock()
+        service.frameworkService=fwkMock.proxyInstance()
 
         def file = service.getFileForExecutionFiletype(e, "json.state", true, false)
         assertNotNull(file)
@@ -1261,7 +1269,13 @@ class LogFileStorageServiceTests  {
     private ExecutionLogReader performReaderRequest(test, boolean isClustered, File logfile, boolean performLoad, Execution e, boolean usesStoredPath, Closure svcClosure=null) {
 
         assertNotNull(e.save())
-        def fmock = mockFor(FrameworkService)
+        def fmock = new StubFor(FrameworkService)
+        fmock.demand.isClusterModeEnabled(0..99) {
+            return isClustered
+        }
+        fmock.demand.getServerUUID(0..99) {
+            UUID.randomUUID()
+        }
         fmock.demand.getFrameworkPropertyResolver() { project ->
             assert project == "testprojz"
         }
@@ -1270,7 +1284,7 @@ class LogFileStorageServiceTests  {
                     'framework.logs.dir': '/tmp/dir'
             ] as Properties
         }
-        def pmock = mockFor(PluginService)
+        def pmock = new MockFor(PluginService)
         pmock.demand.configurePlugin(2..2) { String pname, PluggableProviderService psvc, PropertyResolver resolv, PropertyScope scope ->
             assertEquals("test1", pname)
             assert scope == PropertyScope.Instance
@@ -1286,15 +1300,9 @@ class LogFileStorageServiceTests  {
         ExecutionService.metaClass.static.generateExecutionURL= { Execution execution, LinkGenerator grailsLinkGenerator ->
             ''
         }
-        service.frameworkService = fmock.createMock()
-        service.frameworkService.serverUUID = null
-        service.frameworkService.metaClass.isClusterModeEnabled = {
-            return isClustered
-        }
-        service.frameworkService.metaClass.getServerUUID = {
-            UUID.randomUUID()
-        }
-        service.pluginService = pmock.createMock()
+        service.frameworkService = fmock.proxyInstance()
+//        service.frameworkService.serverUUID = null
+        service.pluginService = pmock.proxyInstance()
         List useStoredValues = [false, false]
         List partialValues = [false, false]
         int useStoredNdx=0

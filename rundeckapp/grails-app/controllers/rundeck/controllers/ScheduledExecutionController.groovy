@@ -2797,8 +2797,7 @@ class ScheduledExecutionController  extends ControllerBase{
             if ([runParams, extra].any { it.hasErrors() }) {
                 request.errors = [runParams, extra].find { it.hasErrors() }.errors
                 return render(contentType: 'application/json') {
-                    delegate.error='invalid'
-                    delegate.message = "Invalid parameters: " + request.errors.allErrors.collect { g.message(error: it) }.join(", ")
+                    delegate error:'invalid', message: "Invalid parameters: " + request.errors.allErrors.collect { g.message(error: it) }.join(", ")
                 }
             }
             results = scheduleJob(null)
@@ -2812,15 +2811,18 @@ class ScheduledExecutionController  extends ControllerBase{
             results.error='request.error.invalidtoken.message'
             results.message=g.message(code:'request.error.invalidtoken.message')
         }
+
+        def link = createLink(controller: "execution",action: "follow",id: results.id)
+        boolean follow_ = params.follow == 'true'
         return render(contentType:'application/json'){
-            if(results.failed){
-                delegate.error=results.error
-                delegate.message=results.message
-            }else{
-                delegate.success=true
-                delegate.id=results.id
-                delegate.href=createLink(controller: "execution",action: "follow",id: results.id)
-                delegate.follow=(params.follow == 'true')
+            if (results.failed) {
+                error results.error
+                message results.message
+            } else {
+                success true
+                id results.id
+                href link
+                follow follow_
             }
         }
     }
@@ -2848,15 +2850,18 @@ class ScheduledExecutionController  extends ControllerBase{
             results.error = 'request.error.invalidtoken.message'
             results.message = g.message(code: 'request.error.invalidtoken.message')
         }
+        def link = createLink(controller: "execution", action: "follow", id: results.id)
+        boolean follow_ = params.follow == 'true'
+
         return render(contentType: 'application/json') {
             if (results.failed) {
-                delegate.error = results.error
-                delegate.message = results.message
+                error results.error
+                message results.message
             } else {
-                delegate.success = true
-                delegate.id = results.id
-                delegate.href = createLink(controller: "execution", action: "follow", id: results.id)
-                delegate.follow = (params.follow == 'true')
+                success true
+                id results.id
+                href link
+                follow follow_
             }
         }
     }
@@ -3860,6 +3865,7 @@ class ScheduledExecutionController  extends ControllerBase{
      * API: run simple exec: /api/run/command, version 1
      */
     def apiRunCommand(ApiRunAdhocRequest runAdhocRequest){
+        runAdhocRequest.validate()
         if(runAdhocRequest.hasErrors()){
             return apiService.renderErrorFormat(
                     response,

@@ -50,7 +50,7 @@ class ApiServiceSpec extends Specification {
         }
 
         then:
-        result.toString()=='{"contents":"x"}'
+        result.toString()=='{"call":{"contents":"x"}}'
 
     }
     def "renderWrappedFileContents xml"(){

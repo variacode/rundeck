@@ -220,7 +220,7 @@ class ProjectControllerSpec extends Specification{
                     opts.acls == (acls ?: false)
         }
         ) >> 'dummytoken'
-        response.redirectedUrl == '/project/exportWait?token=dummytoken&project=aproject'
+        response.redirectedUrl ==  '/project/aproject/exportWait/dummytoken'
 
         where:
         all  | jobs  | execs | configs | readmes | acls
@@ -835,7 +835,7 @@ class ProjectControllerSpec extends Specification{
             1 * requireVersion(_,_,14) >> true
             1 * requireVersion(_,_,11) >> true
             1 * extractResponseFormat(_,_,_,_) >> 'json'
-            1 * renderWrappedFileContents('blah','json',_) >> {args-> args[2].success=true}
+            1 * renderWrappedFileContents('blah','json',_) >> {args-> args[2] success: true}
         }
         when:
         params.path='blah.aclpolicy'
@@ -897,7 +897,7 @@ class ProjectControllerSpec extends Specification{
             1 * requireVersion(_,_,14) >> true
             1 * requireVersion(_,_,11) >> true
             1 * extractResponseFormat(_,_,_,_) >> {it[3]}
-            1 * renderWrappedFileContents('blah','json',_) >> {args-> args[2].success=true}
+            1 * renderWrappedFileContents('blah','json',_) >> {args-> args[2] success: true}
             0 * _(*_)
         }
         when:
@@ -908,7 +908,7 @@ class ProjectControllerSpec extends Specification{
         then:
         response.status==200
         response.contentType.split(';').contains('application/json')
-        response.json.success==true
+        response.json.call.success==true
     }
     def "project acls GET xml"(){
         setup:
@@ -997,7 +997,7 @@ class ProjectControllerSpec extends Specification{
             1 * requireVersion(_,_,11) >> true
             1 * extractResponseFormat(_,_,_,_) >> 'json'
             1 * jsonRenderDirlist('acls/',_,_,['acls/blah.aclpolicy'],_) >> {args->
-                args[4].success=true
+                args[4] success: true
             }
             pathRmPrefix(_,_)>>'x'
         }
@@ -1404,7 +1404,7 @@ class ProjectControllerSpec extends Specification{
         def result=controller.importArchive()
 
         then:
-        response.redirectedUrl=='/menu/projectImport?project=test'
+        response.redirectedUrl=='/project/test/import'
         flash.message=='archive.successfully.imported'
         response.status==302
     }
@@ -1457,7 +1457,7 @@ class ProjectControllerSpec extends Specification{
         def result=controller.importArchive()
 
         then:
-        response.redirectedUrl=='/menu/projectImport?project=test'
+        response.redirectedUrl=='/project/test/import'
         flash.message=='archive.successfully.imported'
         response.status==302
     }
@@ -1535,7 +1535,7 @@ class ProjectControllerSpec extends Specification{
         def result=controller.importArchive()
 
         then:
-        response.redirectedUrl=='/menu/projectImport?project=test'
+        response.redirectedUrl=='/project/test/import'
         flash.error=='request.error.invalidtoken.message'
 
     }
@@ -1575,7 +1575,7 @@ class ProjectControllerSpec extends Specification{
                     opts.acls == true
         },_,_,_,preserveuuid?:false
         ) >> 'dummytoken'
-        response.redirectedUrl == '/project/exportWait?token=dummytoken&project=aproject&instance='+url+'&iproject='+target
+        response.redirectedUrl == '/project/aproject/exportWait/dummytoken?instance=' + url + '&iproject=' + target
 
         where:
         url      | token  | target      | preserveuuid
@@ -1618,7 +1618,7 @@ class ProjectControllerSpec extends Specification{
         },_,_,_,preserveuuid?:false
         ) >> 'dummytoken'
         flash.error
-        response.redirectedUrl == '/menu/projectExport?project=aproject'
+        response.redirectedUrl == '/project/aproject/export'
 
         where:
         url      | token  | target      | preserveuuid
