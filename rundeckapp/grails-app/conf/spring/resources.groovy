@@ -58,7 +58,6 @@ import org.springframework.beans.factory.config.MapFactoryBean
 import org.springframework.core.task.SimpleAsyncTaskExecutor
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.authentication.jaas.DefaultJaasAuthenticationProvider
-import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.provisioning.InMemoryUserDetailsManager
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider
 import org.springframework.security.web.jaasapi.JaasApiIntegrationFilter
