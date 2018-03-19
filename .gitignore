@@ -44,3 +44,4 @@ rundeckapp/env.bash
 /grails/
 /out/
 /scratch/
+rundeckapp/rundeck-runtime/
