@@ -44,6 +44,7 @@ class Execution extends ExecutionContext {
     Execution retryExecution
     Orchestrator orchestrator;
     String userRoleList
+    String serverNodeUUID
 
     static hasOne = [logFileStorageRequest: LogFileStorageRequest]
     static transients = ['executionState', 'customStatusString', 'userRoles']

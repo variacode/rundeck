@@ -1237,7 +1237,7 @@ class ProjectController extends ControllerBase{
     {
         if (respFormat=='json') {
             render(contentType: 'application/json') {
-                contents: contentString
+                delegate contents: contentString //Changes for tests correction
             }
         }else{
             apiService.renderSuccessXml(request, response) {
