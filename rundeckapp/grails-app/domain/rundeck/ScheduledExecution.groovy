@@ -68,6 +68,7 @@ class ScheduledExecution extends ExecutionContext {
     String notifyAvgDurationUrl
     Boolean multipleExecutions = false
     Orchestrator orchestrator
+    String serverNodeUUID
 
     String timeZone
 

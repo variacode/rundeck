@@ -92,14 +92,9 @@ class ExecutionUtilServiceTests {
         }
         def loghandler=logcontrol.proxyInstance()
 
-        def stbocontrol=new MockFor(ThreadBoundOutputStream)
-        def stbecontrol=new MockFor(ThreadBoundOutputStream)
-        stbocontrol.demand.close(1..1){->}
-        stbocontrol.demand.removeThreadStream(1..1){->}
-        stbecontrol.demand.close(1..1){->}
-        stbecontrol.demand.removeThreadStream(1..1){->}
-        executionUtilService.sysThreadBoundOut= stbocontrol.proxyInstance()
-        executionUtilService.sysThreadBoundErr=stbecontrol.proxyInstance()
+
+        executionUtilService.sysThreadBoundOut=new MockForThreadOutputStream(null)
+        executionUtilService.sysThreadBoundErr=new MockForThreadOutputStream(null)
 
         executionUtilService.finishExecutionLogging([thread: thread,loghandler: loghandler,execution:[id:1, project:'p1']])
     }
@@ -168,14 +163,8 @@ class ExecutionUtilServiceTests {
         }
         def loghandler=logcontrol.proxyInstance()
 
-        def stbocontrol=new MockFor(ThreadBoundOutputStream)
-        def stbecontrol=new MockFor(ThreadBoundOutputStream)
-        stbocontrol.demand.close(1..1){->}
-        stbocontrol.demand.removeThreadStream(1..1){->}
-        stbecontrol.demand.close(1..1){->}
-        stbecontrol.demand.removeThreadStream(1..1){->}
-        executionUtilService.sysThreadBoundOut=stbocontrol.proxyInstance()
-        executionUtilService.sysThreadBoundErr=stbecontrol.proxyInstance()
+        executionUtilService.sysThreadBoundOut=new MockForThreadOutputStream(null)
+        executionUtilService.sysThreadBoundErr=new MockForThreadOutputStream(null)
 
         executionUtilService.finishExecutionLogging([thread: thread,loghandler: loghandler,execution:[id:1, project:"x1"]])
     }
@@ -200,15 +189,8 @@ class ExecutionUtilServiceTests {
         logcontrol.demand.close(1..1){->
         }
         def loghandler=logcontrol.proxyInstance()
-
-        def stbocontrol=new MockFor(ThreadBoundOutputStream)
-        def stbecontrol=new MockFor(ThreadBoundOutputStream)
-        stbocontrol.demand.close(1..1){->}
-        stbocontrol.demand.removeThreadStream(1..1){->}
-        stbecontrol.demand.close(1..1){->}
-        stbecontrol.demand.removeThreadStream(1..1){->}
-        executionUtilService.sysThreadBoundOut=stbocontrol.proxyInstance()
-        executionUtilService.sysThreadBoundErr=stbecontrol.proxyInstance()
+        executionUtilService.sysThreadBoundOut=new MockForThreadOutputStream(null)
+        executionUtilService.sysThreadBoundErr=new MockForThreadOutputStream(null)
 
         executionUtilService.finishExecutionLogging([thread: thread,loghandler: loghandler,execution:[id:1]])
     }
@@ -234,14 +216,8 @@ class ExecutionUtilServiceTests {
         logcontrol.demand.close(1..1){-> }
         def loghandler=logcontrol.proxyInstance()
 
-        def stbocontrol=new MockFor(ThreadBoundOutputStream)
-        def stbecontrol=new MockFor(ThreadBoundOutputStream)
-        stbocontrol.demand.close(1..1){->}
-        stbocontrol.demand.removeThreadStream(1..1){->}
-        stbecontrol.demand.close(1..1){->}
-        stbecontrol.demand.removeThreadStream(1..1){->}
-        executionUtilService.sysThreadBoundOut=stbocontrol.proxyInstance()
-        executionUtilService.sysThreadBoundErr=stbecontrol.proxyInstance()
+        executionUtilService.sysThreadBoundOut=new MockForThreadOutputStream(null)
+        executionUtilService.sysThreadBoundErr=new MockForThreadOutputStream(null)
 
         executionUtilService.finishExecutionLogging([thread: thread,loghandler: loghandler,execution:[id:1]])
     }
@@ -543,5 +519,28 @@ class ExecutionUtilServiceTests {
         assertEquals([], item.args as List)
         JobRefCommand jrc = (JobRefCommand) res
         jrc.project=='jobProject'
+    }
+}
+
+
+class MockForThreadOutputStream extends ThreadBoundOutputStream{
+
+    /**
+     * Create a ThreadBoundOutputStream with a particular OutputStream as the default write destination.
+     *
+     * @param stream default sink
+     */
+    MockForThreadOutputStream(OutputStream stream) {
+        super(stream)
+    }
+
+    @Override
+    OutputStream removeThreadStream() {
+        return null
+    }
+
+    @Override
+    void close() throws IOException {
+
     }
 }
