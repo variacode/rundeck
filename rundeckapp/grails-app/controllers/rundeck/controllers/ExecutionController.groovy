@@ -36,6 +36,7 @@ import com.dtolabs.rundeck.plugins.logs.ContentConverterPlugin
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import com.dtolabs.rundeck.server.plugins.DescribedPlugin
 import grails.converters.JSON
+import grails.web.JSONBuilder
 import grails.web.mapping.LinkGenerator
 import rundeck.CommandExec
 import rundeck.Execution
@@ -818,7 +819,7 @@ class ExecutionController extends ControllerBase{
         ]
         def setProp={k,v->
             if(outf=='json'){
-                delegate[k]=v
+                delegate."${k}"(v)
             }else{
                 delegate."${k}"(v)
             }
@@ -847,6 +848,7 @@ class ExecutionController extends ControllerBase{
             compactedAttr = 'log'
         }
         def prev = [:]
+        List jsonDatamapList = []
         def dataClos= {
             outputData.each {
                 def datamap = stateoutput?(it + [
@@ -880,11 +882,7 @@ class ExecutionController extends ControllerBase{
                     }
                 }
                 if (outf == 'json') {
-                    if (datamap instanceof Map) {
-                        delegate.'entries'(datamap)
-                    } else {
-                        delegate.element(datamap)
-                    }
+                        jsonDatamapList.add(datamap) //Changes to correct ExecutionControllerSpec."api execution output compacted json" test
                 } else {
                     if (datamap instanceof Map) {
                         if (compacted && removed) {
@@ -906,7 +904,9 @@ class ExecutionController extends ControllerBase{
             }
         }
         if(outf=='json'){
-            delegate.'entries' = delegate.array(dataClos)
+            //Changes to correct ExecutionControllerSpec."api execution output compacted json" test
+            dataClos()
+            delegate.entries(jsonDatamapList)
         }else{
             delegate.entries(dataClos)
         }
@@ -1352,7 +1352,7 @@ class ExecutionController extends ControllerBase{
             }
             json {
                 render(contentType: "application/json") {
-                    renderOutputFormat('json', resultData, entry, request.api_version, delegate, stateoutput)
+                    this.renderOutputFormat('json', resultData, entry, request.api_version, delegate, stateoutput)
                 }
             }
             text{
