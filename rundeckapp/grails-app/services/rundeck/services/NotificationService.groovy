@@ -25,6 +25,7 @@ import com.dtolabs.rundeck.plugins.notification.NotificationPlugin
 import com.dtolabs.rundeck.server.plugins.DescribedPlugin
 import com.dtolabs.rundeck.server.plugins.ValidatedPlugin
 import com.dtolabs.rundeck.server.plugins.services.NotificationPluginProviderService
+import grails.web.mapping.LinkGenerator
 import groovy.xml.MarkupBuilder
 import org.apache.commons.httpclient.Header
 import org.apache.commons.httpclient.HttpClient
@@ -61,6 +62,8 @@ public class NotificationService implements ApplicationContextAware{
     def NotificationPluginProviderService notificationPluginProviderService
     def FrameworkService frameworkService
     def LoggingService loggingService
+    def apiService
+    def executionService
 
     def ValidatedPlugin validatePluginConfig(String project, String name, Map config) {
         return pluginService.validatePlugin(name, notificationPluginProviderService,
@@ -153,7 +156,7 @@ public class NotificationService implements ApplicationContextAware{
 
                     def configSubject=mailConfig.subject
                     def configAttachLog=mailConfig.attachLog
-                    final state = ExecutionService.getExecutionState(exec)
+                    final state = exec.executionState
                     def statMsg=[
                             (ExecutionService.EXECUTION_ABORTED):'KILLED',
                             (ExecutionService.EXECUTION_FAILED):'FAILURE',
@@ -304,12 +307,12 @@ public class NotificationService implements ApplicationContextAware{
                 }else if(n.type=='url'){    //sending notification of a status trigger for the Job
                     def Execution exec = content.execution
                     //iterate through the URLs, and submit a POST to the destination with the XML Execution result
-                    final state = ExecutionService.getExecutionState(exec)
+                    final state = exec.executionState
                     def writer = new StringWriter()
                     def xml = new MarkupBuilder(writer)
 
                     xml.'notification'(trigger:trigger,status:state,executionId:exec.id){
-                        new ExecutionController().renderApiExecutions(grailsLinkGenerator,[exec], [:], delegate)
+                        renderApiExecutions(grailsLinkGenerator,[exec], [:], delegate)
                     }
                     writer.flush()
                     String xmlStr=  writer.toString()
@@ -363,6 +366,20 @@ public class NotificationService implements ApplicationContextAware{
         }
 
         return didsend
+    }
+/*
+    * Render execution list xml given a List of executions, and a builder delegate
+    */
+    private def renderApiExecutions(LinkGenerator grailsLinkGenerator, List execlist, paging, delegate) {
+        apiService.renderExecutionsXml(execlist.collect{ Execution e->
+            [
+                execution:e,
+                href: grailsLinkGenerator.link(controller: 'execution', action: 'follow', id: e.id, absolute: true,
+                        params: [project: e.project]),
+                status: e.executionState,
+                summary: executionService.summarizeJob(e.scheduledExecution, e)
+            ]
+        },paging,delegate)
     }
     /**
      * Creates a datacontext map from the execution's original context, and user profile data.
@@ -422,7 +439,7 @@ public class NotificationService implements ApplicationContextAware{
             id: e.id,
             href: grailsLinkGenerator.link(controller: 'execution', action: 'follow', id: e.id, absolute: true,
                     params: [project: e.project]),
-            status: ExecutionService.getExecutionState(e),
+            status: e.executionState,
             user: e.user,
             dateStarted: e.dateStarted,
             'dateStartedUnixtime': e.dateStarted.time,
@@ -495,7 +512,7 @@ public class NotificationService implements ApplicationContextAware{
     }
 
     String expandWebhookNotificationUrl(String url,Execution exec, ScheduledExecution job, String trigger){
-        def state=ExecutionService.getExecutionState(exec)
+        def state= exec.executionState
         /**
          * Expand the URL string's embedded property references of the form
          * ${job.PROPERTY} and ${execution.PROPERTY}.  available properties are
