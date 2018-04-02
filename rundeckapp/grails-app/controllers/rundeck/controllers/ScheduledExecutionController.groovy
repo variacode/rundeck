@@ -357,10 +357,10 @@ class ScheduledExecutionController  extends ControllerBase{
         }
 
         render(contentType: 'application/json') {
-            total = model.total
-            nextExecution = model.nextExecution
-            nextExecutionW3CTime = model.nextExecutionW3CTime
-            max = model.max
+            total model.total
+            nextExecution model.nextExecution
+            nextExecutionW3CTime model.nextExecutionW3CTime
+            max model.max
             job(
                     id: se.extid,
                     name: (se.jobName),
@@ -560,7 +560,7 @@ class ScheduledExecutionController  extends ControllerBase{
         withFormat {
             json {
                 render(contentType: 'application/json') {
-                    workflow= wfdata
+                    workflow wfdata
                 }
             }
         }
@@ -2303,10 +2303,10 @@ class ScheduledExecutionController  extends ControllerBase{
         }
         return render(contentType:'text/json'){
             if(results.error){
-                delegate['error']=results.error
+                'error' results.error
             }else{
-                success='true'
-                id=results.id
+                success 'true'
+                id results.id
             }
         }
     }

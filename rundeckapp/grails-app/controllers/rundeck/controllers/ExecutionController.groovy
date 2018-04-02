@@ -92,7 +92,10 @@ class ExecutionController extends ControllerBase{
     }
 
     def follow() {
-        return render(view:'show',model:show())
+        def m = show()
+        if(response.status != 302) {
+            render(view:'show',model:m)
+        }
     }
 
     def followFragment() {
@@ -153,28 +156,27 @@ class ExecutionController extends ControllerBase{
             }
         }
 
-        render(contentType: 'application/json'){
-            executions=array{
-                execs.each{Execution exec->
-                    if(exec.workflow.commands.size()==1 && exec.workflow.commands[0].adhocRemoteString) {
-                        def href=createLink(
-                                controller: 'framework',
-                                action: 'adhoc',
-                                params: [project: project, fromExecId: exec.id]
-                        )
+        def elementList = execs.collect{Execution exec->
+            if(exec.workflow.commands.size()==1 && exec.workflow.commands[0].adhocRemoteString) {
+                def href=createLink(
+                        controller: 'framework',
+                        action: 'adhoc',
+                        params: [project: project, fromExecId: exec.id]
+                )
 
-                        def appliedFilter = exec.doNodedispatch ? exec.filter : notDispatchedFilter
-                        element(
-                                status: exec.getExecutionState(),
-                                succeeded: exec.statusSucceeded(),
-                                href: href,
-                                execid: exec.id,
-                                title: exec.workflow.commands[0].adhocRemoteString,
-                                filter: appliedFilter
-                        )
-                    }
-                }
+                def appliedFilter = exec.doNodedispatch ? exec.filter : notDispatchedFilter
+                return [
+                        status: exec.getExecutionState(),
+                        succeeded: exec.statusSucceeded(),
+                        href: href,
+                        execid: exec.id,
+                        title: exec.workflow.commands[0].adhocRemoteString,
+                        filter: appliedFilter
+                ]
             }
+        }
+        render(contentType: 'application/json'){
+            executions elementList
         }
     }
 
@@ -202,7 +204,8 @@ class ExecutionController extends ControllerBase{
             return
         }
         if(!params.project || params.project!=e.project) {
-            return redirect(controller: 'execution', action: 'show', params: [id: params.id, project: e.project])
+            redirect(controller: 'execution', action: 'show', params: [id: params.id, project: e.project])
+            return
         }
         params.project=e.project
         request.project=e.project
@@ -351,7 +354,7 @@ class ExecutionController extends ControllerBase{
         }
 
         def jobcomplete = e.dateCompleted != null
-        def execState = executionService.getExecutionState(e)
+        def execState = e.executionState
         def execDuration = (e.dateCompleted ? e.dateCompleted.getTime() : System.currentTimeMillis()) - e.dateStarted.getTime()
         def jobAverage=-1L
         if (e.scheduledExecution && e.scheduledExecution.totalTime >= 0 && e.scheduledExecution.execCount > 0) {
@@ -377,7 +380,7 @@ class ExecutionController extends ControllerBase{
             data['retryExecutionId']=e.retryExecution.id
             data['retryExecutionUrl']=createLink(controller: 'execution',action: 'show',id: e.retryExecution.id,
                     params:[project:e.project])
-            data['retryExecutionState']=ExecutionService.getExecutionState(e.retryExecution).toUpperCase()
+            data['retryExecutionState']=e.retryExecution.executionState.toUpperCase()
             data['retryExecutionAttempt']= e.retryExecution.retryAttempt
         }
         def selectedNodes=[]
@@ -489,7 +492,7 @@ class ExecutionController extends ControllerBase{
         if (file.exists()) {
             filesize = file.length()
         }
-        final state = ExecutionService.getExecutionState(e)
+        final state = e.executionState
         if(e.scheduledExecution){
             def ScheduledExecution se = e.scheduledExecution //ScheduledExecution.get(e.scheduledExecutionId)
             return render(view:"mailNotification/status" ,model: [execstate: state, scheduledExecution: se, execution:e, filesize:filesize])
@@ -882,7 +885,7 @@ class ExecutionController extends ControllerBase{
                     }
                 }
                 if (outf == 'json') {
-                        jsonDatamapList.add(datamap) //Changes to correct ExecutionControllerSpec."api execution output compacted json" test
+                    jsonDatamapList.add(datamap) //Changes to correct ExecutionControllerSpec."api execution output compacted json" test
                 } else {
                     if (datamap instanceof Map) {
                         if (compacted && removed) {
@@ -1491,20 +1494,6 @@ class ExecutionController extends ControllerBase{
     public String createServerUrl() {
         return g.createLink(controller: 'menu', action: 'index', absolute: true)
     }
-    /**
-     * Render execution list xml given a List of executions, and a builder delegate
-     */
-    private def renderApiExecutions(LinkGenerator grailsLinkGenerator, List execlist, paging, delegate) {
-        apiService.renderExecutionsXml(execlist.collect{ Execution e->
-            [
-                execution:e,
-                href: grailsLinkGenerator.link(controller: 'execution', action: 'follow', id: e.id, absolute: true,
-                        params: [project: e.project]),
-                status: executionService.getExecutionState(e),
-                summary: executionService.summarizeJob(e.scheduledExecution, e)
-            ]
-        },paging,delegate)
-    }
 
     /**
      * API: /api/execution/{id} , version 1
@@ -2003,7 +1992,7 @@ class ExecutionController extends ControllerBase{
         withFormat{
             json {
                 render(contentType: "application/json") {
-                    delegate.executionMode=active?'active':'passive'
+                    executionMode (active?'active':'passive')
                 }
             }
             xml {

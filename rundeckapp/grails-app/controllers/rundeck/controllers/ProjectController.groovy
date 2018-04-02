@@ -507,13 +507,14 @@ class ProjectController extends ControllerBase{
      * @param hasConfigAuth true if 'configure' action is allowed
      * @param vers api version requested
      */
-    private def renderApiProjectJson (def pject, delegate, hasConfigAuth=false, vers=1){
+    private def renderApiProjectJson (def pject, hasConfigAuth=false, vers=1){
         Map data=basicProjectDetails(pject)
-        delegate url: data.url, name: data.name, description: data.description
+        Map json = [url: data.url, name: data.name, description: data.description]
         def ctrl=this
         if(hasConfigAuth){
-            delegate.config (frameworkService.loadProjectProperties(pject))
+            json.config = frameworkService.loadProjectProperties(pject)
         }
+        json
     }
 
     private Map basicProjectDetails(def pject) {
@@ -529,8 +530,8 @@ class ProjectController extends ControllerBase{
      * @param pject framework project object
      * @param delegate builder delegate for response
      */
-    private def renderApiProjectConfigJson (def pject, delegate){
-        delegate frameworkService.loadProjectProperties(pject)
+    private def renderApiProjectConfigJson (def pject){
+        frameworkService.loadProjectProperties(pject)
     }
 
 
@@ -619,9 +620,7 @@ class ProjectController extends ControllerBase{
                 }
             }
             json{
-                return render(contentType: 'application/json'){
-                    ctrl.renderApiProjectJson(pject, delegate, configAuth, request.api_version)
-                }
+                render renderApiProjectJson(pject, configAuth, request.api_version) as JSON
             }
         }
     }
@@ -726,9 +725,8 @@ class ProjectController extends ControllerBase{
                 }
                 break
             case 'json':
-                render(status: HttpServletResponse.SC_CREATED, contentType: 'application/json') {
-                    renderApiProjectJson(proj, delegate, true, request.api_version)
-                }
+                response.status = HttpServletResponse.SC_CREATED
+                render renderApiProjectJson(proj, true, request.api_version) as JSON
                 break
         }
     }
@@ -890,9 +888,7 @@ class ProjectController extends ControllerBase{
                 }
                 break
             case 'json':
-                render(contentType: 'application/json') {
-                    renderApiProjectConfigJson(proj, delegate)
-                }
+                render renderApiProjectConfigJson(proj) as JSON
                 break
         }
     }
@@ -1003,9 +999,7 @@ class ProjectController extends ControllerBase{
             response.status = HttpServletResponse.SC_BAD_REQUEST
             return withFormat{
                 def j={
-                    render(contentType:'application/json'){
-                        apiService.renderJsonAclpolicyValidation(validation,delegate)
-                    }
+                    render apiService.renderJsonAclpolicyValidation(validation) as JSON
                 }
                 xml{
                     render(contentType: 'application/xml'){
@@ -1030,13 +1024,13 @@ class ProjectController extends ControllerBase{
             project.loadFileResource(projectFilePath,baos)
             withFormat{
                 json{
-                    render(contentType:'application/json'){
-                        apiService.renderWrappedFileContents(baos.toString(),respFormat,delegate)
-                    }
+                    def content = [contents: baos.toString()]
+                    render content as JSON
+
                 }
                 xml{
                     render(contentType: 'application/xml'){
-                        apiService.renderWrappedFileContents(baos.toString(),respFormat,delegate)
+                        apiService.renderWrappedFileContentsXml(baos.toString(), respFormat, delegate)
                     }
 
                 }
@@ -1071,13 +1065,12 @@ class ProjectController extends ControllerBase{
                 project.loadFileResource(projectFilePath,baos)
                 withFormat{
                     json{
-                        render(contentType:'application/json'){
-                            apiService.renderWrappedFileContents(baos.toString(),'json',delegate)
-                        }
+                        def content = [contents:baos.toString()]
+                        render content as JSON
                     }
                     xml{
                         render(contentType: 'application/xml'){
-                            apiService.renderWrappedFileContents(baos.toString(),'xml',delegate)
+                            apiService.renderWrappedFileContentsXml(baos.toString(), 'xml', delegate)
                         }
 
                     }
@@ -1096,15 +1089,13 @@ class ProjectController extends ControllerBase{
             }
             withFormat{
                 json{
-                    render(contentType:'application/json'){
-                        apiService.jsonRenderDirlist(
+                    render apiService.jsonRenderDirlist(
                                 projectFilePath,
                                 {p->apiService.pathRmPrefix(p,rmprefix)},
                                 {p->renderProjectAclHref(project.getName(),apiService.pathRmPrefix(p,rmprefix))},
                                 list,
                                 delegate
-                        )
-                    }
+                        ) as JSON
                 }
                 xml{
                     render(contentType: 'application/xml'){
@@ -1236,9 +1227,8 @@ class ProjectController extends ControllerBase{
     )
     {
         if (respFormat=='json') {
-            render(contentType: 'application/json') {
-                delegate contents: contentString //Changes for tests correction
-            }
+            def jsonContent = [contents: contentString]
+            render jsonContent  as JSON
         }else{
             apiService.renderSuccessXml(request, response) {
                 delegate.'contents' {
@@ -1374,9 +1364,7 @@ class ProjectController extends ControllerBase{
                 }
                 break
             case 'json':
-                render(contentType: 'application/json') {
-                    renderApiProjectConfigJson(project, delegate)
-                }
+                render renderApiProjectConfigJson(project) as JSON
                 break
         }
 

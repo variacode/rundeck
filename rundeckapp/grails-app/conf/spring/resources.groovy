@@ -55,11 +55,10 @@ import org.rundeck.web.infosec.ContainerRoleSource
 import org.rundeck.web.infosec.HMacSynchronizerTokensManager
 import org.rundeck.web.infosec.PreauthenticatedAttributeRoleSource
 import org.springframework.beans.factory.config.MapFactoryBean
-import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.task.SimpleAsyncTaskExecutor
-import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.authentication.jaas.DefaultJaasAuthenticationProvider
-import org.springframework.security.core.userdetails.UserDetailsByNameServiceWrapper
+import org.springframework.security.provisioning.InMemoryUserDetailsManager
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider
 import org.springframework.security.web.jaasapi.JaasApiIntegrationFilter
 import rundeck.services.PasswordFieldsService
@@ -375,7 +374,6 @@ beans={
     apiMarshallerRegistrar(ApiMarshallerRegistrar)
 
     //spring security preauth filter configuration
-
     rundeckUserDetailsService(RundeckUserDetailsService)
 
     rundeckPreauthFilter(RundeckPreauthenticationRequestHeaderFilter) {
@@ -389,16 +387,25 @@ beans={
         preAuthenticatedUserDetailsService = ref('rundeckUserDetailsService')
     }
 
-    //spring security jaas configuration
-    jaasApiIntegrationFilter(JaasApiIntegrationFilter)
-    rundeckJaasAuthorityGranter(RundeckJaasAuthorityGranter)
+    if(grailsApplication.config.rundeck.useJaas in [true,'true']) {
+        //spring security jaas configuration
+        jaasApiIntegrationFilter(JaasApiIntegrationFilter)
+        rundeckJaasAuthorityGranter(RundeckJaasAuthorityGranter)
 
-    jaasAuthProvider(DefaultJaasAuthenticationProvider) {
-        configuration = Configuration.getConfiguration()
-        loginContextName = "rundecklogin"
-        authorityGranters = [
-                ref('rundeckJaasAuthorityGranter')
-        ]
+        jaasAuthProvider(DefaultJaasAuthenticationProvider) {
+            configuration = Configuration.getConfiguration()
+            loginContextName = grailsApplication.config.rundeck.security.jaasLoginModuleName
+            authorityGranters = [
+                    ref('rundeckJaasAuthorityGranter')
+            ]
+        }
+    } else {
+        //if not using jaas for security provide a simple default
+        Properties realmProperties = new Properties()
+        realmProperties.load(new File(grailsApplication.config.rundeck.security.fileUserDataSource).newInputStream())
+        realmPropertyFileDataSource(InMemoryUserDetailsManager, realmProperties)
+        realmAuthProvider(DaoAuthenticationProvider) {
+            userDetailsService = ref('realmPropertyFileDataSource')
+        }
     }
-
 }

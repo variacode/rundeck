@@ -41,24 +41,12 @@ import java.time.ZoneId
 @TestMixin(ControllerUnitTestMixin)
 @Mock([User, AuthToken])
 class ApiServiceSpec extends Specification {
-    def "renderWrappedFileContents json"(){
-        given:
-        def builder = new JSONBuilder()
-        when:
-        def result=builder.build {
-            service.renderWrappedFileContents('x','json',delegate)
-        }
-
-        then:
-        result.toString()=='{"call":{"contents":"x"}}'
-
-    }
     def "renderWrappedFileContents xml"(){
         given:
         def sw = new StringWriter()
         def builder = new MarkupBuilder(sw)
         when:
-        service.renderWrappedFileContents('x','xml',builder)
+        service.renderWrappedFileContentsXml('x', 'xml', builder)
 
         then:
         sw.toString()=='<contents><![CDATA[x]]></contents>'
@@ -129,21 +117,12 @@ class ApiServiceSpec extends Specification {
     }
 
     def "renderJsonAclpolicyValidation"(){
-        given:
-
-        def builder = new JSONBuilder()
         when:
         def validation=Stub(Validation){
             isValid()>>false
             getErrors()>>['file1[1]':['error1','error2'],'file2[1]':['error3','error4']]
         }
-        def result=builder.build {
-            service.renderJsonAclpolicyValidation(
-                    validation,
-                    delegate
-            )
-        }
-        def parsed=JSON.parse(result.toString())
+        def parsed=service.renderJsonAclpolicyValidation(validation)
         then:
         parsed==[valid:false,
         policies:[

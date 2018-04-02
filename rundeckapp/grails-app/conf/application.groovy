@@ -1,5 +1,3 @@
-def rundeckAppName = "rundeck"
-
 hibernate {
     cache.queries = true
     cache.use_second_level_cache = true
@@ -74,24 +72,15 @@ environments {
     }
 }
 
-
 grails.config.locations = [
-        "classpath:ClusterEvents.groovy",
-        "classpath:ExecutionCompleteEvents.groovy",
-        "classpath:JobChangeEvents.groovy",
-        "classpath:QuartzConfig.groovy",
-        "classpath:WebrealmsConfig.groovy"
+        "classpath:QuartzConfig.groovy"
 ]
 
 if(environment=="development"){
     grails.config.locations << "file:${userHome}/.grails/${appName}-config.properties"
 }
-if(System.properties["${rundeckAppName}.config.location"]) {
-    grails.config.locations << "file:" + System.properties["${rundeckAppName}.config.location"]
-}else{
-    grails.config.locations << "classpath:${rundeckAppName}-config.properties"
-}
 
+grails.config.locations << "classpath:${appName}-config.properties"
 
 grails.plugin.springsecurity.securityConfigType = "InterceptUrlMap"
 
@@ -135,7 +124,7 @@ grails.plugin.springsecurity.filterChain.chainMap = [
 grails.plugin.springsecurity.filterChain.filterNames = [
         'securityContextPersistenceFilter', 'logoutFilter',
         'rundeckPreauthFilter',
-        'authenticationProcessingFilter', 'jaasApiIntegrationFilter',
+        'authenticationProcessingFilter',
         'securityContextHolderAwareRequestFilter',
         'rememberMeAuthenticationFilter', 'anonymousAuthenticationFilter',
         'exceptionTranslationFilter', 'filterInvocationInterceptor'
@@ -151,10 +140,17 @@ grails.plugin.springsecurity.failureHandler.defaultFailureUrl = "/user/error"
 
 grails.plugin.springsecurity.providerNames = [
         'preAuthenticatedAuthProvider',
-        'jaasAuthProvider',
         'anonymousAuthenticationProvider',
         'rememberMeAuthenticationProvider']
 
+boolean useJaas = (null != System.getProperty("rundeck.jaaslogin") || Boolean.getBoolean("rundeck.jaaslogin"))
+if(useJaas) {
+    grails.plugin.springsecurity.providerNames.add(1,'jaasAuthProvider')
+    grails.plugin.springsecurity.filterChain.filterNames.add(4,'jaasApiIntegrationFilter')
+
+} else {
+    grails.plugin.springsecurity.providerNames.add(1,'realmAuthProvider')
+}
 log4j={
     // Example of changing the log pattern for the default console
     // appender:
