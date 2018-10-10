@@ -19,12 +19,7 @@ package rundeck.services
 import com.dtolabs.rundeck.app.support.ExecutionQuery
 import com.dtolabs.rundeck.core.authentication.Group
 import com.dtolabs.rundeck.core.authentication.Username
-import com.dtolabs.rundeck.core.authorization.Attribute
-import com.dtolabs.rundeck.core.authorization.AuthContext
-import com.dtolabs.rundeck.core.authorization.AuthorizationUtil
-import com.dtolabs.rundeck.core.authorization.MultiAuthorization
-import com.dtolabs.rundeck.core.authorization.UserAndRolesAuthContext
-import com.dtolabs.rundeck.core.authorization.SubjectAuthContext
+import com.dtolabs.rundeck.core.authorization.*
 import com.dtolabs.rundeck.core.authorization.providers.EnvironmentalContext
 import com.dtolabs.rundeck.core.common.*
 import com.dtolabs.rundeck.core.execution.service.ExecutionServiceException
@@ -32,15 +27,10 @@ import com.dtolabs.rundeck.core.execution.service.FileCopierService
 import com.dtolabs.rundeck.core.execution.service.MissingProviderException
 import com.dtolabs.rundeck.core.execution.service.NodeExecutorService
 import com.dtolabs.rundeck.core.plugins.PluggableProviderRegistryService
-import com.dtolabs.rundeck.core.plugins.configuration.PropertyResolverFactory
-import com.dtolabs.rundeck.core.plugins.configuration.Describable
-import com.dtolabs.rundeck.core.plugins.configuration.Description
-import com.dtolabs.rundeck.core.plugins.configuration.Property
-import com.dtolabs.rundeck.core.plugins.configuration.PropertyScope
-import com.dtolabs.rundeck.core.plugins.configuration.Validator
+import com.dtolabs.rundeck.core.plugins.configuration.*
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import com.dtolabs.rundeck.server.plugins.loader.ApplicationContextPluginFileSource
-import org.codehaus.groovy.grails.commons.GrailsApplication
+import grails.core.GrailsApplication
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import rundeck.Execution
@@ -69,6 +59,7 @@ class FrameworkService implements ApplicationContextAware {
     def metricService
     def Framework rundeckFramework
     def rundeckPluginRegistry
+    def PluginControlService pluginControlService
 
     def getRundeckBase(){
         return rundeckFramework.baseDir.absolutePath;
@@ -189,6 +180,16 @@ class FrameworkService implements ApplicationContextAware {
         }
         def authed = authorizeApplicationResourceSet(authContext, resources, [AuthConstants.ACTION_READ,AuthConstants.ACTION_ADMIN] as Set)
         return new ArrayList(new HashSet(authed.collect{it.name})).sort()
+    }
+    def projectLabels (AuthContext authContext) {
+        def projectNames = projectNames(authContext)
+        def projectMap = [:]
+        projectNames.each { project ->
+            def fwkProject = getFrameworkProject(project)
+            def label = fwkProject.getProjectProperties().get("project.label")
+            projectMap.put(project,label?:project)
+        }
+        projectMap
     }
 
     def existsFrameworkProject(String project) {
@@ -352,7 +353,7 @@ class FrameworkService implements ApplicationContextAware {
      * @return
      */
     def Map authResourceForJob(ScheduledExecution se){
-        return authResourceForJob(se.jobName,se.groupPath)
+        return authResourceForJob(se.jobName,se.groupPath,se.extid)
     }
 
     /**
@@ -360,8 +361,8 @@ class FrameworkService implements ApplicationContextAware {
      * @param se
      * @return
      */
-    def Map authResourceForJob(String name, String groupPath){
-        return AuthorizationUtil.resource(AuthConstants.TYPE_JOB,[name:name,group:groupPath?:''])
+    def Map authResourceForJob(String name, String groupPath, String uuid){
+        return AuthorizationUtil.resource(AuthConstants.TYPE_JOB,[name:name,group:groupPath?:'',uuid: uuid])
     }
     /**
      * Return the resource definition for a project for use by authorization checks
@@ -450,20 +451,56 @@ class FrameworkService implements ApplicationContextAware {
         }
         return !(decisions.find {!it.authorized})
     }
-
     /**
-     * Return true if the user is authorized for all actions for the execution in the project context
+     * Return true if any actions are authorized for the resource in the project context
      * @param framework
-     * @param exec
+     * @param resource
      * @param actions
      * @param project
+     * @return
+     */
+    def boolean authorizeProjectResourceAny(AuthContext authContext, Map resource, Collection actions, String project){
+        if(null==project){
+            throw new IllegalArgumentException("null project")
+        }
+        if (null == authContext) {
+            throw new IllegalArgumentException("null authContext")
+        }
+        def decisions= metricService.withTimer(this.class.name,'authorizeProjectResourceAll') {
+            authContext.evaluate(
+                    [resource] as Set,
+                    actions as Set,
+                    Collections.singleton(new Attribute(URI.create(EnvironmentalContext.URI_BASE + "project"), project)))
+        }
+        return (decisions.find {it.authorized})
+    }
+
+    /**
+     * Return true if the user is authorized for all actions for the execution
+     * @param authContext
+     * @param exec
+     * @param actions
      * @return true/false
      */
-    def authorizeProjectExecutionAll( AuthContext authContext, Execution exec, Collection actions){
+    boolean authorizeProjectExecutionAll( AuthContext authContext, Execution exec, Collection actions){
         def ScheduledExecution se = exec.scheduledExecution
         return se ?
                authorizeProjectJobAll(authContext, se, actions, se.project)  :
                authorizeProjectResourceAll(authContext, AuthConstants.RESOURCE_ADHOC, actions, exec.project)
+
+    }
+    /**
+     * Return true if the user is authorized for any actions for the execution
+     * @param authContext
+     * @param exec
+     * @param actions
+     * @return true/false
+     */
+    boolean authorizeProjectExecutionAny( AuthContext authContext, Execution exec, Collection actions){
+        def ScheduledExecution se = exec.scheduledExecution
+        return se ?
+               authorizeProjectJobAny(authContext, se, actions, se.project)  :
+               authorizeProjectResourceAny(authContext, AuthConstants.RESOURCE_ADHOC, actions, exec.project)
 
     }
     /**
@@ -492,6 +529,19 @@ class FrameworkService implements ApplicationContextAware {
             }
         }
         return results
+    }
+    /**
+     * Return true if the user is authorized for all actions for the job in the project context
+     * @param framework
+     * @param job
+     * @param actions
+     * @param project
+     * @return true/false
+     */
+    def authorizeProjectJobAny(AuthContext authContext, ScheduledExecution job, Collection actions, String project) {
+        actions.any {
+            authorizeProjectJobAll(authContext, job, [it], project)
+        }
     }
     /**
      * Return true if the user is authorized for all actions for the job in the project context
@@ -644,11 +694,18 @@ class FrameworkService implements ApplicationContextAware {
         }
         return session['_Framework:AuthContext']
     }
-    def Framework getRundeckFramework(){
+    def IFramework getRundeckFramework(){
         if (!initialized) {
             initialize()
         }
         return rundeckFramework;
+    }
+
+    def PluginControlService getPluginControlService(String project) {
+        if(!pluginControlService){
+            pluginControlService = PluginControlServiceImpl.forProject(getRundeckFramework(), project)
+        }
+        return pluginControlService
     }
 
     public UserAndRolesAuthContext getAuthContextForSubject(Subject subject) {
@@ -774,6 +831,57 @@ class FrameworkService implements ApplicationContextAware {
      */
     def Description getStepPluginDescription(String type) throws MissingProviderException{
         rundeckFramework.getStepExecutionService().providerOfType(type).description
+    }
+
+    /**
+     * Return step plugin of a certain type
+     * @param type
+     * @return
+     */
+    def getStepPlugin(String type) throws MissingProviderException{
+        rundeckFramework.getStepExecutionService().providerOfType(type)
+    }
+
+    /**
+     * Return node step plugin of a certain type
+     * @param type
+     * @return
+     */
+    def getNodeStepPlugin(String type){
+        rundeckFramework.getNodeStepExecutorService().providerOfType(type)
+    }
+
+
+    /**
+     * Return dynamic properties values from step plugin
+     * @param type, projectAndFrameworkValues
+     * @return
+     */
+    def Map<String, Object> getDynamicPropertiesStepPlugin(
+            String type, Map<String, Object> projectAndFrameworkValues) throws MissingProviderException{
+
+        def plugin = getStepPlugin(type)
+        getDynamicProperties(plugin, projectAndFrameworkValues)
+    }
+
+    /**
+     * Return dynamic properties values from node step plugin
+     * @param type, projectAndFrameworkValues
+     * @return
+     */
+    def Map<String, Object> getDynamicPropertiesNodeStepPlugin(
+            String type, Map<String, Object> projectAndFrameworkValues) throws MissingProviderException{
+
+        def plugin = getNodeStepPlugin(type)
+        getDynamicProperties(plugin, projectAndFrameworkValues)
+    }
+
+    def Map<String, Object> getDynamicProperties(plugin, Map<String, Object> projectAndFrameworkValues){
+        if(plugin instanceof DynamicProperties){
+            return plugin.dynamicProperties(projectAndFrameworkValues)
+        }
+
+        return null
     }
     /**
      * Return the list of NodeStepPlugin descriptions
@@ -922,7 +1030,7 @@ class FrameworkService implements ApplicationContextAware {
         pject.getProjectProperties()
     }
 
-    public def listResourceModelConfigurations(String project) {
+    public List<Map<String,Object>> listResourceModelConfigurations(String project) {
         def fproject = getFrameworkProject(project)
         fproject.projectNodes.listResourceModelConfigurations()
     }
@@ -1093,6 +1201,10 @@ class FrameworkService implements ApplicationContextAware {
 
     Map<String, String> getProjectGlobals(final String project) {
         rundeckFramework.getProjectGlobals(project)
+    }
+
+    Map<String, String> getProjectProperties(final String project) {
+        rundeckFramework.getFrameworkProjectMgr().getFrameworkProject(project).getProperties()
     }
 
     String getDefaultInputCharsetForProject(final String project) {

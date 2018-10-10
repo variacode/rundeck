@@ -33,6 +33,7 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
     String jobProject
     String jobIdentifier
     String argString
+    String uuid
     String nodeFilter
     Boolean nodeKeepgoing
     Integer nodeThreadcount
@@ -40,10 +41,12 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
     String nodeRankAttribute
     Boolean nodeRankOrderAscending
     Boolean nodeIntersect
+    Boolean failOnDisable
+    Boolean importOptions
     static transients = ['jobIdentifier']
 
     static constraints = {
-        jobName(nullable: false, blank: false, maxSize: 1024)
+        jobName(nullable: true, blank: true, maxSize: 1024)
         jobGroup(nullable: true, blank: true, maxSize: 2048)
         jobProject(nullable: true, blank: true, maxSize: 2048)
         argString(nullable: true, blank: true)
@@ -54,6 +57,9 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
         nodeRankAttribute(nullable: true, maxSize: 256)
         nodeRankOrderAscending(nullable: true)
         nodeIntersect(nullable: true)
+        failOnDisable(nullable: true)
+        importOptions(nullable: true)
+        uuid(nullable: true)
     }
 
     static mapping = {
@@ -63,10 +69,11 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
         jobProject type: 'string'
         nodeFilter type: 'text'
         nodeRankAttribute type: 'text'
+        uuid type: 'text'
     }
 
     public String toString() {
-        return "jobref(name=\"${jobName}\" group=\"${jobGroup}\" project=\"${jobProject}\" argString=\"${argString}\" " +
+        return "jobref((uuid=\"${uuid}\" name=\"${jobName}\" group=\"${jobGroup}\" project=\"${jobProject}\" argString=\"${argString}\" " +
                 "nodeStep=\"${nodeStep}\"" +
                 "nodeFilter=\"${nodeFilter}\"" +
                 "nodeKeepgoing=\"${nodeKeepgoing}\"" +
@@ -83,6 +90,9 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
 
 
     public String getJobIdentifier() {
+        if(uuid){
+            return uuid
+        }
         return (null==jobGroup?'':jobGroup+"/")+jobName;
     }
     public void setJobIdentifier(){
@@ -103,6 +113,9 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
         if(jobProject){
             map.jobref.project = jobProject
         }
+        if(uuid){
+        	map.jobref.uuid = uuid
+        }
         if(argString){
             map.jobref.args=argString
         }
@@ -116,6 +129,12 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
         }
         if (description) {
             map.description = description
+        }
+        if(failOnDisable){
+            map.failOnDisable = failOnDisable
+        }
+        if(importOptions){
+            map.jobref.importOptions = importOptions
         }
         if(nodeFilter){
             map.jobref.nodefilters=[filter:nodeFilter]
@@ -143,6 +162,28 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
         }
         return map
     }
+    /**
+    * Return map representation without details
+     */
+    public Map toDescriptionMap(){
+        final Map map = [jobref: [group: jobGroup ? jobGroup : '', name: jobName]]
+        if(jobProject){
+            map.jobref.project = jobProject
+        }
+        if(uuid){
+        	map.jobref.uuid = uuid
+        }
+        if(nodeStep){
+            map.jobref.nodeStep="true"
+        }
+        if (errorHandler) {
+            map.errorhandler = errorHandler.toDescriptionMap()
+        }
+        if (description) {
+            map.description = description
+        }
+        return map
+    }
 
     static JobExec jobExecFromMap(Map map){
         JobExec exec = new JobExec()
@@ -151,6 +192,9 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
         if (map.jobref.project || map.project) {
             exec.jobProject = map.jobref.project ?: map.project
         }
+        if(map.jobref.uuid){
+        	exec.uuid = map.jobref.uuid
+        }
         if(map.jobref.args){
             exec.argString=map.jobref.args
         }
@@ -158,6 +202,16 @@ public class JobExec extends WorkflowStep implements IWorkflowJobItem{
             exec.nodeStep=true
         }else{
             exec.nodeStep=false
+        }
+        if(map.jobref.failOnDisable){
+            if (map.jobref.failOnDisable in ['true', true]) {
+                exec.failOnDisable = true
+            }
+        }
+        if(map.jobref.importOptions){
+            if (map.jobref.importOptions in ['true', true]) {
+                exec.importOptions = true
+            }
         }
         exec.keepgoingOnSuccess = !!map.keepgoingOnSuccess
         exec.description=map.description?.toString()

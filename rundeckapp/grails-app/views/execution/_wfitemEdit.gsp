@@ -23,7 +23,7 @@
     $Id$
  --%>
 <g:set var="rkey" value="${g.rkey()}"/>
-<div class=" wfitemEditForm container">
+<div class=" wfitemEditForm">
     <g:hasErrors bean="${item}">
         <div class="alert alert-danger">
             <g:renderErrors bean="${item}" as="list"/>
@@ -60,11 +60,11 @@
                     <div class="col-sm-2">
                         <g:javascript>
                         fireWhenReady('jobProjectField${rkey}',function(){
-                            _initJobPickerAutocomplete('jobNameField${rkey}','jobGroupField${rkey}','jobProjectField${rkey}');
+                            _initJobPickerAutocomplete('jobUuidField${rkey}','jobNameField${rkey}','jobGroupField${rkey}','jobProjectField${rkey}');
                         });
                         </g:javascript>
 
-                        <span class="btn  btn-default act_choose_job" onclick="loadJobChooserModal(this, 'jobNameField${rkey}','jobGroupField${rkey}', 'jobProjectField${rkey}','jobrefpicker${rkey}','jobrefpicker${rkey}_content');"
+                        <span class="btn  btn-default act_choose_job" onclick="loadJobChooserModal(this,'jobUuidField${rkey}', 'jobNameField${rkey}','jobGroupField${rkey}', 'jobProjectField${rkey}','jobrefpicker${rkey}','jobrefpicker${rkey}_content');"
                               id="jobChooseBtn${rkey}"
                               title="${message(code:"select.an.existing.job.to.use")}"
                               data-loading-text="Loading...">
@@ -76,6 +76,15 @@
                     </div>
                 </div>
                 <div class="form-group" >
+                    <label class="col-sm-2 control-label"><g:message code="Workflow.Step.uuid.label" /></label>
+                    <div class="col-sm-10">
+                        <input type='text' name="uuid" value="${enc(attr:item?.uuid)}" size="100"
+                               placeholder="${message(code:"Workflow.Step.jobreference.uuid.placeholder")}"
+                               id="jobUuidField${rkey}"
+                               class="form-control context_var_autocomplete"/>
+                    </div>
+                </div>
+                <div class="form-group" >
                     <label class="col-sm-2 control-label"><g:message code="Workflow.Step.argString.label" /></label>
                     <div class="col-sm-10">
                         <input type='text' name="argString" value="${enc(attr:item?.argString)}" size="100"
@@ -84,12 +93,43 @@
                                class="form-control context_var_autocomplete"/>
                     </div>
                 </div>
+                <div class="form-group" >
+                    <label class="col-sm-2 control-label"></label>
+                    <div class="col-sm-10">
+                        <div class="checkbox">
+                            <label>
+                                <g:checkBox name="importOptions"
+                                            checked="${item?.importOptions}"
+                                            id="importOptionsCheck" value="true"
+                                />
+                                <g:message code="Workflow.Step.jobreference.import.options.label" />
+                            </label>
+                            <span class="text-primary"><g:message code="Workflow.Step.jobreference.import.options.help" /></span>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="form-group" >
+                    <label class="col-sm-2 control-label"></label>
+                    <div class="col-sm-10">
+                        <div class="checkbox">
+                            <label>
+                                <g:checkBox name="failOnDisable"
+                                            checked="${item?.failOnDisable}"
+                                            id="failOnDisableCheck" value="true"
+                                            />
+                                <g:message code="Workflow.Step.jobreference.fail.on.disabled.label" />
+                            </label>
+                            <span class="text-primary"><g:message code="Workflow.Step.jobreference.fail.on.disabled.help" /></span>
+                        </div>
+                    </div>
+
+                </div>
 
     <g:set var="nodeFilterOverrideExpanded" value="${item?.nodeFilter || item?.nodeIntersect}"/>
     <div class="row">
     <div class="col-sm-2 control-label">
-    <span class="btn   btn-link ${wdgt.css(if: nodeFilterOverrideExpanded, then: 'active')}"
-                data-toggle="collapse" data-target="#nodeFilterOverride${enc(attr: rkey)}">
+    <span class="btn ${wdgt.css(if: nodeFilterOverrideExpanded, then: 'active')}" data-toggle="collapse" data-target="#nodeFilterOverride${enc(attr: rkey)}">
         <g:message code="override.node.filters" />
         <i class="glyphicon ${wdgt.css(if: nodeFilterOverrideExpanded, then: 'glyphicon-chevron-down', else: 'glyphicon-chevron-right')} "></i>
     </span>
@@ -168,17 +208,17 @@
                     <div class=" col-sm-10  ">
 
                         <div class="well well-sm embed matchednodes">
-                            <button type="button" class="pull-right btn btn-info btn-sm refresh_nodes"
+                            <button type="button" class="pull-right btn btn-sm refresh_nodes"
                                     data-loading-text="${message(code:"loading.text")}"
                                     data-bind="click: $data.updateMatchedNodes"
                                     title="${message(code:"click.to.refresh")}">
                                 <g:message code="refresh"/>
                                 <i class="glyphicon glyphicon-refresh"></i>
                             </button>
-                            <span class="text-muted" data-bind="visible: total()>0">
+                            <span class="text-primary" data-bind="visible: total()>0">
                                 <span data-bind="messageTemplate: [total,nodesTitle]"><g:message code="count.nodes.matched"/></span>
                             </span>
-                            <span class="text-muted" data-bind="visible: !filter()">
+                            <span class="text-primary" data-bind="visible: !filter()">
                                 <span data-bind="text: emptyMessage"></span>
                             </span>
 
@@ -309,7 +349,7 @@
 
                                 <g:message code="JobExec.nodeStep.true.label" />
                             </label>
-                            <span class="text-muted"><g:message code="JobExec.nodeStep.true.description"/></span>
+                            <span class="text-primary"><g:message code="JobExec.nodeStep.true.description"/></span>
                         </div>
                         <div class="radio">
                             <label>
@@ -318,7 +358,7 @@
 
                                 <g:message code="JobExec.nodeStep.false.label" />
                             </label>
-                            <span class="text-muted"><g:message code="JobExec.nodeStep.false.description"/></span>
+                            <span class="text-primary"><g:message code="JobExec.nodeStep.false.description"/></span>
                         </div>
                     </div>
                 </div>
@@ -401,7 +441,7 @@
                     <g:set var="hasAdvanced" value="${item?.scriptInterpreter || item?.interpreterArgsQuoted || item?.fileExtension}"/>
                     <div class="row">
                         <div class="col-sm-2 control-label">
-                            <span class="btn btn-link ${wdgt.css(if: hasAdvanced, then:'active')}" data-toggle="collapse" data-target="#scriptInterpreter${rkey}">
+                            <span class="btn ${wdgt.css(if: hasAdvanced, then:'active')}" data-toggle="collapse" data-target="#scriptInterpreter${rkey}">
                                 Advanced
                                 <i class="glyphicon ${wdgt.css(if: hasAdvanced, then: 'glyphicon-chevron-down', else:'glyphicon-chevron-right')} "></i>
                             </span>
@@ -569,6 +609,7 @@
                     <g:render template="/framework/pluginConfigPropertiesInputs" model="${[
                             extraInputCss: 'context_var_autocomplete',
                             service            : serviceName,
+                            dynamicProperties  : dynamicProperties,
                             provider           : newitemDescription.name,
                             properties         : newitemDescription.properties,
                             report             : report,
@@ -601,7 +642,7 @@
                     <g:checkBox name="keepgoingOnSuccess" value="true" checked="${item?.keepgoingOnSuccess}"/>
                     <g:message code="Workflow.stepErrorHandler.keepgoingOnSuccess.label" />
                 </label>
-                <span class="text-muted"><g:message code="Workflow.stepErrorHandler.keepgoingOnSuccess.description" /></span>
+                <span class="text-primary"><g:message code="Workflow.stepErrorHandler.keepgoingOnSuccess.description" /></span>
             </div>
         </g:if>
         <g:else>
@@ -646,7 +687,7 @@
             <g:else>
                 <g:hiddenField name="num" value="${num}"/>
                 <g:hiddenField name="origitemtype" value="${origitemtype}"/>
-                <span class="btn btn-default btn-sm" onclick="_wfiview('${key}',${num},${isErrorHandler?true:false});" title="${message(code:"Workflow."+msgItem+".discard.title")}" ><g:message code="button.action.discard" /></span>
+                <span class="btn btn-default btn-sm" onclick="_wfiview('${key}',${num},${isErrorHandler?true:false});" title="${message(code:"Workflow."+msgItem+".discard.title")}" ><g:message code="button.action.Cancel" /></span>
                 <span class="btn btn-primary btn-sm" onclick="_wfisave('${key}',${num}, 'wfiedit_${rkey}', ${ isErrorHandler?true:false});"
                       title="${message(code:"Workflow."+msgItem+".save.title")}"><g:message code="button.action.Save" /></span>
             </g:else>

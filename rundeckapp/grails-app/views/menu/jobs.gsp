@@ -21,20 +21,23 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="layout" content="base"/>
     <meta name="tabpage" content="jobs"/>
-    <title><g:message code="gui.menu.Workflows"/> - <g:enc>${params.project ?: request.project}</g:enc></title>
+    <g:set var="projectName" value="${params.project ?: request.project}"></g:set>
+    <g:set var="projectLabel" value="${session.frameworkLabels?session.frameworkLabels[projectName]:projectName}"/>
+    <title><g:message code="gui.menu.Workflows"/> - <g:enc>${projectLabel}</g:enc></title>
 
     <asset:javascript src="util/yellowfade.js"/>
-    <g:javascript library="pagehistory"/>
-    <g:javascript library="prototype/effects"/>
+    <asset:javascript src="pagehistory.js"/>
+    <asset:javascript src="prototype/effects"/>
     <asset:javascript src="menu/jobs.js"/>
     <g:if test="${grails.util.Environment.current==grails.util.Environment.DEVELOPMENT}">
         <asset:javascript src="menu/joboptionsTest.js"/>
         <asset:javascript src="menu/job-remote-optionsTest.js"/>
     </g:if>
     <g:embedJSON data="${projectNames ?: []}" id="projectNamesData"/>
+    <g:embedJSON data="${nextSchedListIds ?: []}" id="nextScheduled"/>
     <g:embedJSON id="pageParams" data="${[project: params.project?:request.project,]}"/>
     <g:jsMessages code="Node,Node.plural,job.starting.execution,job.scheduling.execution,option.value.required,options.remote.dependency.missing.required,,option.default.button.title,option.default.button.text,option.select.choose.text"/>
-    <!--[if (gt IE 8)|!(IE)]><!--> <g:javascript library="ace/ace"/><!--<![endif]-->
+    <!--[if (gt IE 8)|!(IE)]><!--> <asset:javascript src="ace-bundle.js"/><!--<![endif]-->
     <script type="text/javascript">
         /** knockout binding for activity */
         var pageActivity;
@@ -179,7 +182,7 @@
             $('busy').hide();
         }
 
-       
+
 
 
         //set box filterselections
@@ -524,8 +527,267 @@
                 self.beginEdit();
                 self.action(action);
                 self.toggleModal();
-            }
+            };
+
+            self.scmExportEnabled = ko.observable(false);
+            self.scmImportEnabled = ko.observable(false);
+            self.scmStatus = ko.observable(null);
+            self.scmImportJobStatus = ko.observable(null);
+            self.scmExportStatus = ko.observable(null);
+            self.scmImportStatus = ko.observable(null);
+            self.scmExportActions = ko.observable(null);
+            self.scmImportActions = ko.observable(null);
+            self.scmExportRenamed = ko.observable(null);
+            self.isExportEnabled=ko.pureComputed(function(){
+                return self.scmExportEnabled();
+            });
+
+            self.jobSynchState = function(jobid){
+                var exportStatus = null;
+                var importStatus = null;
+                if(self.scmStatus() && self.scmStatus()[jobid]){
+                    exportStatus = self.scmStatus()[jobid].synchState.name;
+                }
+                if(self.scmImportJobStatus() && self.scmImportJobStatus()[jobid]){
+                    importStatus = self.scmImportJobStatus()[jobid].synchState.name;
+                }
+                if(!exportStatus || exportStatus == "CLEAN"){
+                    return importStatus;
+                }else{
+                    return exportStatus
+                }
+            };
+
+            self.displayBadge = function(jobid){
+                var displayExport = false;
+                var displayImport = false;
+                if(self.scmExportEnabled() || self.scmImportEnabled()){
+                    if(self.scmStatus() && self.scmStatus()[jobid]){
+                        displayExport = self.scmStatus()[jobid].synchState.name != "CLEAN";
+                    }
+                    if(self.scmImportJobStatus() && self.scmImportJobStatus()[jobid]){
+                        displayImport = self.scmImportJobStatus()[jobid].synchState.name != "CLEAN";
+                    }
+                }
+                return (displayExport || displayImport);
+            };
+
+            self.jobText = function(jobid){
+                var exportStatus = null;
+                var importStatus = null;
+                var text = null;
+                if(self.scmStatus() && self.scmStatus()[jobid]){
+                    exportStatus = self.scmStatus()[jobid].synchState.name;
+                    switch(exportStatus) {
+                        case "EXPORT_NEEDED":
+                            text = "${message(code: "scm.export.status.EXPORT_NEEDED.description")}";
+                            break;
+                        case "CREATE_NEEDED":
+                            text = "${message(code: "scm.export.status.CREATE_NEEDED.description")}";
+                            break;
+                        case "CLEAN":
+                            text = "${message(code: "scm.export.status.CLEAN.description")}";
+                            break;
+                        default:
+                            text = exportStatus;
+                    }
+                }
+                if(self.scmImportJobStatus() && self.scmImportJobStatus()[jobid]){
+                    if(text){
+                        text +=', ';
+                    }else{
+                        text = '';
+                    }
+                    importStatus = self.scmImportJobStatus()[jobid].synchState.name;
+                    switch(importStatus) {
+                        case "IMPORT_NEEDED":
+                            text += "${message(code: "scm.import.status.IMPORT_NEEDED.description")}";
+                            break;
+                        case "DELETE_NEEDED":
+                            text += "${message(code: "scm.import.status.DELETE_NEEDED.description")}";
+                            break;
+                        case "CLEAN":
+                            text += "${message(code: "scm.import.status.CLEAN.description")}";
+                            break;
+                        case "REFRESH_NEEDED":
+                            text += "${message(code: "scm.import.status.REFRESH_NEEDED.description")}";
+                            break;
+                        case "UNKNOWN":
+                            text += "${message(code: "scm.import.status.UNKNOWN.description")}";
+                            break;
+                        default:
+                            text += importStatus;
+                    }
+
+                }
+                return text;
+            };
+
+            self.jobClass = function(jobid){
+                switch(self.jobSynchState(jobid)) {
+                    case "EXPORT_NEEDED":
+                        return "text-info";
+                        break;
+                    case "CREATE_NEEDED":
+                        return "text-success";
+                        break;
+                    case "UNKNOWN":
+                        return "text-primary";
+                        break;
+                    case "IMPORT_NEEDED":
+                        return "text-warning";
+                        break;
+                    case "REFRESH_NEEDED":
+                        return "text-warning";
+                        break;
+                    case "DELETED":
+                        return "text-danger";
+                        break;
+                    case "CLEAN":
+                        return "text-primary";
+                        break;
+                }
+                return 'text-primary';
+            };
+
+            self.jobIcon = function(jobid){
+                switch(self.jobSynchState(jobid)) {
+                    case "EXPORT_NEEDED":
+                        return "glyphicon-exclamation-sign";
+                        break;
+                    case "CREATE_NEEDED":
+                        return "glyphicon-exclamation-sign";
+                        break;
+                    case "UNKNOWN":
+                        return "glyphicon-question-sign";
+                        break;
+                    case "IMPORT_NEEDED":
+                        return "glyphicon-exclamation-sign";
+                        break;
+                    case "REFRESH_NEEDED":
+                        return "glyphicon-exclamation-sign";
+                        break;
+                    case "DELETED":
+                        return "glyphicon-minus-sign";
+                        break;
+                    case "CLEAN":
+                        return "glyphicon-ok";
+                        break;
+                }
+                return 'glyphicon-plus';
+            };
+
+            self.exportMessage = function(){
+                if(self.scmExportStatus()){
+                    return self.scmExportStatus().message;
+                }
+                return null;
+            };
+            self.importMessage = function(){
+                if(self.scmImportStatus()){
+                    return self.scmImportStatus().message;
+                }
+                return null;
+            };
+
+            self.exportState = function(){
+                if(self.scmExportStatus()){
+                    return self.scmExportStatus().state.name;
+                }
+                return null;
+            };
+            self.importState = function(){
+                if(self.scmImportStatus()){
+                    return self.scmImportStatus().state.name;
+                }
+                return null;
+            };
+
+            self.jobCommit = function(jobid){
+                return self.scmExportEnabled();
+            };
+
+            self.defaultExportText = function(){
+                if(self.exportState()) {
+                    var text = null;
+                    switch(self.exportState()) {
+                        case "EXPORT_NEEDED":
+                            text = "${message(code: "scm.export.status.EXPORT_NEEDED.display.text")}";
+                            break;
+                        case "CREATE_NEEDED":
+                            text = "${message(code: "scm.export.status.CREATE_NEEDED.display.text")}";
+                            break;
+                        case "REFRESH_NEEDED":
+                            text = "${message(code: "scm.export.status.REFRESH_NEEDED.display.text")}";
+                            break;
+                        case "DELETED":
+                            text = "${message(code: "scm.export.status.DELETED.display.text")}";
+                            break;
+                        case "CLEAN":
+                            text = "${message(code: "scm.export.status.CLEAN.display.text")}";
+                            break;
+                    }
+                    if(!text){
+                        text = self.exportState();
+                    }
+                    return text;
+                }
+                return null;
+            };
+
+            self.defaultImportText = function(){
+                if(self.importState()) {
+                    var text = null;
+                    switch(self.importState()) {
+                        case "IMPORT_NEEDED":
+                            text = "${message(code: "scm.import.status.IMPORT_NEEDED.display.text")}";
+                            break;
+                        case "REFRESH_NEEDED":
+                            text = "${message(code: "scm.import.status.REFRESH_NEEDED.display.text")}";
+                            break;
+                        case "UNKNOWN":
+                            text = "${message(code: "scm.import.status.UNKNOWN.display.text")}";
+                            break;
+                        case "CLEAN":
+                            text = "${message(code: "scm.import.status.CLEAN.display.text")}";
+                            break;
+                    }
+                    if(!text){
+                        text = self.importState();
+                    }
+                    return text;
+                }
+                return null;
+            };
+
+            self.defaultDisplayText = function(){
+                if(self.exportState() != 'CLEAN'){
+                    return self.defaultExportText();
+                }else{
+                    return self.defaultImportText();
+                }
+            };
+
+
+            self.displayExport = function(){
+                return (self.exportState() && self.exportState() != 'CLEAN');
+            };
+
+            self.displayImport = function(){
+                return (self.importState() && self.importState() != 'CLEAN');
+            };
+
+            self.displaySCMMEssage = function(){
+                return (self.displayExport() || self.displayImport());
+            };
+
         }
+
+
+
+
+
+
         var bulkeditor;
         jQuery(document).ready(function () {
             init();
@@ -549,7 +811,53 @@
             ko.applyBindings(bulkeditor,document.getElementById('job_action_menu'));
             ko.applyBindings(bulkeditor,document.getElementById('job_group_tree'));
             ko.applyBindings(bulkeditor,document.getElementById('group_controls'));
+            ko.applyBindings(bulkeditor,document.getElementById('scm_message'));
+            ko.applyBindings(bulkeditor,document.getElementById('scmStatusPopoverOK'));
+
+
+
+
+            jQuery(document).on('click','#togglescm',function(evt){
+                evt.preventDefault();
+                jQuery.ajax({
+                    dataType:'json',
+                    method: "POST",
+                    url:_genUrl(appLinks.togglescm),
+                    params:nextScheduled,
+                    success:function(data,status,xhr){
+                        console.log(data);
+                    }
+                });
+            });
+
+            var pageParams = loadJsonData('pageParams');
+            var nextScheduled = loadJsonData('nextScheduled');
+            var nextSchedList="";
+            for(var i=0; i< nextScheduled.length; i++){
+                nextSchedList = nextSchedList+nextScheduled[i]+",";
+            }
+
+            jQuery.ajax({
+                dataType:'json',
+                method: "POST",
+                url:_genUrl(appLinks.scmjobs, {nextScheduled:nextSchedList}),
+                params:nextScheduled,
+                success:function(data,status,xhr){
+                    bulkeditor.scmExportEnabled(data.scmExportEnabled);
+                    bulkeditor.scmStatus(data.scmStatus);
+                    bulkeditor.scmExportStatus(data.scmExportStatus);
+                    bulkeditor.scmExportActions(data.scmExportActions);
+                    bulkeditor.scmExportRenamed(data.scmExportRenamed);
+
+                    bulkeditor.scmImportEnabled(data.scmImportEnabled);
+                    bulkeditor.scmImportJobStatus(data.scmImportJobStatus);
+                    bulkeditor.scmImportStatus(data.scmImportStatus);
+                    bulkeditor.scmImportActions(data.scmImportActions);
+                }
+            });
         });
+
+
     </script>
 
     <asset:javascript src="util/yellowfade.js"/>
@@ -565,62 +873,73 @@
     </style>
 </head>
 <body>
-
-
-<g:if test="${flash.bulkJobResult?.errors}">
-    <div class="alert alert-dismissable alert-warning">
-        <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
-        <ul>
-            <g:if test="${flash.bulkJobResult.errors instanceof org.springframework.validation.Errors}">
-                <g:renderErrors bean="${flash.bulkJobResult.errors}" as="list"/>
-            </g:if>
-            <g:else>
-                <g:each in="${flash.bulkJobResult.errors*.message}" var="message">
-                    <li><g:autoLink>${message}</g:autoLink></li>
-                </g:each>
-            </g:else>
-        </ul>
+<div class="container-fluid">
+  <g:if test="${flash.bulkJobResult?.errors}">
+      <div class="alert alert-warning">
+          <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
+          <ul>
+              <g:if test="${flash.bulkJobResult.errors instanceof org.springframework.validation.Errors}">
+                  <g:renderErrors bean="${flash.bulkJobResult.errors}" as="list"/>
+              </g:if>
+              <g:else>
+                  <g:each in="${flash.bulkJobResult.errors*.message}" var="message">
+                      <li><g:autoLink>${message}</g:autoLink></li>
+                  </g:each>
+              </g:else>
+          </ul>
+      </div>
+  </g:if>
+  <g:if test="${flash.bulkJobResult?.success}">
+      <div class="alert alert-info">
+          <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
+          <ul>
+          <g:each in="${flash.bulkJobResult.success*.message}" var="message">
+              <li><g:autoLink>${message}</g:autoLink></li>
+          </g:each>
+          </ul>
+      </div>
+  </g:if>
+  <div class="row">
+    <div class="col-xs-12">
+      <div class="card">
+        <div class="card-header">
+          <g:render template="workflowsFull" model="${[jobExpandLevel:jobExpandLevel,jobgroups:jobgroups,wasfiltered:wasfiltered?true:false, clusterMap: clusterMap,nextExecutions:nextExecutions,jobauthorizations:jobauthorizations,authMap:authMap,nowrunningtotal:nowrunningtotal,max:max,offset:offset,paginateParams:paginateParams,sortEnabled:true,rkey:rkey, clusterModeEnabled:clusterModeEnabled]}"/>
+        </div>
+        <div class="card-content">
+          <div class="runbox primary jobs" id="indexMain">
+              <div id="error" class="alert alert-danger" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
     </div>
-</g:if>
-<g:if test="${flash.bulkJobResult?.success}">
-    <div class="alert alert-dismissable alert-info">
-        <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
-        <ul>
-        <g:each in="${flash.bulkJobResult.success*.message}" var="message">
-            <li><g:autoLink>${message}</g:autoLink></li>
-        </g:each>
-        </ul>
+  </div>
+  <div class="row">
+    <div class="col-xs-12">
+      <div class="card"  id="activity_section">
+        <div class="card-header">
+          <h3 class="card-title"><g:message code="page.section.Activity.for.jobs" /></h4>
+        </div>
+        <div class="card-content">
+          <g:render template="/reports/activityLinks" model="[filter: [projFilter: params.project ?: request.project, jobIdFilter: '!null',], knockoutBinding: true, showTitle:true]"/>
+        </div>
+      </div>
     </div>
-</g:if>
-<div class="runbox primary jobs" id="indexMain">
-    <div id="error" class="alert alert-danger" style="display:none;"></div>
-    <g:render template="workflowsFull" model="${[jobExpandLevel:jobExpandLevel,jobgroups:jobgroups,wasfiltered:wasfiltered?true:false, clusterMap: clusterMap,nextExecutions:nextExecutions,jobauthorizations:jobauthorizations,authMap:authMap,nowrunningtotal:nowrunningtotal,max:max,offset:offset,paginateParams:paginateParams,sortEnabled:true,rkey:rkey, clusterModeEnabled:clusterModeEnabled]}"/>
+  </div>
 </div>
+
 <div class="modal fade" id="execDiv" role="dialog" aria-labelledby="deleteFilterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="deleteFilterModalLabel"><g:message code="job.execute.action.button" /></h4>
-            </div>
-
-            <div class="" id="execDivContent">
-
-
-            </div>
-</div>
-</div>
-</div>
-
-<g:render template="/menu/copyModal"
-          model="[projectNames: projectNames]"/>
-
-<div class="row row-space" id="activity_section">
-    <div class="col-sm-12 ">
-        <h4 class="text-muted "><g:message code="page.section.Activity.for.jobs" /></h4>
-        <g:render template="/reports/activityLinks"
-                  model="[filter: [projFilter: params.project ?: request.project, jobIdFilter: '!null',], knockoutBinding: true, showTitle:true]"/>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="deleteFilterModalLabel"><g:message code="job.execute.action.button" /></h4>
+      </div>
+      <div class="" id="execDivContent"></div>
     </div>
+  </div>
 </div>
+
+<g:render template="/menu/copyModal" model="[projectNames: projectNames]"/>
+
 </body>
 </html>

@@ -1,5 +1,5 @@
 %{--
-  - Copyright 2017 Rundeck, Inc. (http://rundeck.com)
+  - Copyright 2018 Rundeck, Inc. (http://rundeck.com)
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
     <div class="grid-cell hover-action-holder">
         <g:if test="${editHref}">
             <a href="${editHref}"
-               class=" btn btn-link textbtn-info "
+               class=" btn btn-simple textbtn-info "
                title="Edit">
                 <g:if test="${validation.valid}">
 

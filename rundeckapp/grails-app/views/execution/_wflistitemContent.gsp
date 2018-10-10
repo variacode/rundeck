@@ -21,11 +21,14 @@
     $Id$
 
 
- --%><div id="wfivis_${enc(attr:i)}" style="${i==highlight?'opacity: 0':''}">
+ --%>
+
+<g:set var="jobitem" value="${item.instanceOf(JobExec)|| (item instanceof java.util.Map && (item.jobName || item.uuid))}"/>
+<div id="wfivis_${enc(attr:i)}" style="${i==highlight?'opacity: 0':''}">
     <div class="pflowitem wfctrlholder">
         <span class="pflow item " id="wfitem_${enc(attr:i)}" >
         <g:if test="${isErrorHandler}">
-            <span class="text-muted"><g:message code="Workflow.stepErrorHandler.label.on.error" /></span>
+            <span class="text-primary"><g:message code="Workflow.stepErrorHandler.label.on.error" /></span>
         </g:if>
         <g:render template="/execution/wfItemView" model="${[item:item,edit:edit,noimgs:noimgs, workflow: workflow, project: project]}"/>
         <g:if test="${edit}">
@@ -47,7 +50,9 @@
                 <g:if test="${!isErrorHandler}">
             <div class="btn-group">
 
-                <button type="button" class="btn btn-sm btn-default dropdown-toggle" data-toggle="dropdown"
+                <button type="button" class="btn btn-sm btn-default dropdown-toggle"
+                    ${item.errorHandler && jobitem ? 'disabled="disabled"':''}
+                        data-toggle="dropdown"
                         aria-haspopup="true" aria-expanded="false">
                     <g:icon name="cog"/> <span class="caret"></span>
                 </button>
@@ -62,6 +67,7 @@
                     </li>
                 </g:if>
 
+                    <g:if test="${!jobitem}">
                 <li>
                     <a class=""
                       data-bind="click: addFilterPopup"
@@ -70,6 +76,7 @@
                     Add Log Filter
                     </a>
                 </li>
+                    </g:if>
                 </ul>
             </div>
             </g:if>
@@ -86,7 +93,7 @@
             </g:unless>
         </div>
             <g:unless test="${isErrorHandler}">
-            <span class="btn btn-sm btn-link dragHandle"  title="Drag to reorder"><g:icon name="resize-vertical"/></span>
+            <span class="btn btn-sm btn-simple dragHandle"  title="Drag to reorder"><g:icon name="resize-vertical"/></span>
             </g:unless>
         </span>
 
@@ -133,7 +140,7 @@
             <g:if test="${!isErrorHandler && edit}">
                 <div id="logFilter_${enc(attr:i)}">
                 <!-- ko if: filters().length -->
-                    <span class="text-muted"><g:message code="log.filters" /></span>
+                    <span class="text-primary"><g:message code="log.filters" /></span>
                 <!-- /ko -->
                 <!-- ko foreach: filters -->
                 <span class="btn btn-xs btn-info-hollow autohilite"

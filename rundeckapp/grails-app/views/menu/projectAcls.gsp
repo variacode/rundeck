@@ -1,5 +1,5 @@
 %{--
-  - Copyright 2017 Rundeck, Inc. (http://rundeck.com)
+  - Copyright 2018 Rundeck, Inc. (http://rundeck.com)
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -62,7 +62,8 @@
     <meta name="layout" content="base"/>
     <meta name="tabpage" content="projectconfigure"/>
     <meta name="projtabtitle" content="${message(code: 'gui.menu.AccessControl')}"/>
-    <title><g:message code="page.title.project.access.control.0" args="${[params.project]}"/></title>
+    <g:set var="projectLabel" value="${session.frameworkLabels?session.frameworkLabels[params.project]:params.project}"/>
+    <title><g:message code="page.title.project.access.control.0" args="${[projectLabel]}"/></title>
 
     <asset:javascript src="menu/aclListing.js"/>
     <script type="application/javascript">
@@ -93,79 +94,74 @@
                          [:]}"/>
 </head>
 <body>
-
-<div class="row">
+<div class="container-fluid">
+  <div class="row">
     <div class="col-sm-12">
-        <g:render template="/common/messages"/>
+      <g:render template="/common/messages"/>
     </div>
     <g:if test="${hasUploadValidationError}">
-        <div id="uploadedPolicyValidation" class="col-sm-12">
-            <g:render template="aclValidationReportKO"/>
-            <div class="alert alert-default alert-dismissible">
-                <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
-                <h4><g:message code="aclpolicy.file.upload.failed.acl.policy.validation.message" /></h4>
-                <span data-bind="template: { name: 'acl-policy-validation', data:$data }"></span>
-            </div>
+      <div id="uploadedPolicyValidation" class="col-sm-12">
+        <g:render template="aclValidationReportKO"/>
+        <div class="alert alert-default alert-dismissible">
+          <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
+          <h4><g:message code="aclpolicy.file.upload.failed.acl.policy.validation.message" /></h4>
+          <span data-bind="template: { name: 'acl-policy-validation', data:$data }"></span>
         </div>
-
+      </div>
     </g:if>
-</div>
-
-<div class="row">
-    <div class="col-sm-10 col-sm-offset-1">
-        <div class="panel panel-default">
-            <div class="panel-heading clearfix">
-                <span class="panel-title pull-left">
-                    <span class="text-info">${acllist?.size() ?: 0}</span>
-                    <g:message code="project.access.control.prompt" args="${[params.project]}"/>
+  </div>
+  <div class="row">
+    <div class="col-xs-12">
+      <div class="card">
+        <div class="card-header clearfix">
+          <h3 class="card-title">
+            <g:message code="project.access.control.prompt" args="${[params.project]}"/>
+            <span class="label label-default">${acllist?.size() ?: 0}</span>
+            <g:if test="${hasCreateAuth}">
+              <div class="btn-group pull-right">
+                <span class="btn btn-sm btn-default" data-toggle="modal" data-target="#aclUpload">
+                  <g:icon name="upload"/>
+                  <g:message code="button.action.Upload"/>
                 </span>
-                <g:if test="${hasCreateAuth}">
-                    <div class="btn-group pull-right">
-                        <span class="btn btn-sm btn-default" data-toggle="modal" data-target="#aclUpload">
-                            <g:icon name="upload"/>
-                            <g:message code="button.action.Upload"/>
-                        </span>
-                        <g:link controller="menu"
-                                action="createProjectAclFile"
-                                params="${[project: params.project]}"
-                                class="btn btn-sm btn-success">
-                            <g:icon name="plus"/>
-                            <g:message code="access.control.action.create.acl.policy.button.title"/>
-                        </g:link>
-                    </div>
-                </g:if>
-            </div>
-
-            <div class="panel-body panel-content-embed" id="policyList">
-                <table class="table table-hover table-condensed table-embed ">
-                    <tbody data-bind="foreach: policies">
-                        <g:render template="/menu/aclValidationRowKO"
-                                  model="${[
-                                          hasEditAuth  : hasEditAuth,
-                                          hasDeleteAuth: hasDeleteAuth,
-                                          hasCreateAuth: hasCreateAuth,
-                                          editHref     : g.createLink(
-                                                  [controller: 'menu', action: 'editProjectAclFile', params: [project: params.project, id: '<$>']]
-                                          ),
-                                          deleteModalId: 'deleteAclPolicy',
-                                          uploadModalId: 'aclUpload',
-
-                                  ]}"/>
-
-                    </tbody>
-                </table>
-            </div>
+                <g:link controller="menu"
+                        action="createProjectAclFile"
+                        params="${[project: params.project]}"
+                        class="btn btn-sm btn-success">
+                  <g:icon name="plus"/>
+                  <g:message code="access.control.action.create.acl.policy.button.title"/>
+                </g:link>
+              </div>
+            </g:if>
+          </h3>
         </div>
-    </div>
-</div>
-<g:render template="/menu/aclManageKO" model="[
-        deleteAction :
-                [controller: 'menu', action: 'deleteProjectAclFile', params: [project: params.project]],
-        uploadModalId: 'aclUpload',
-        uploadAction : hasCreateAuth || hasEditAuth ?
-                [controller: 'menu', action: 'saveProjectAclFile', params: [project: params.project, upload: true]] :
-                null
-]"/>
 
+        <div class="card-content" id="policyList">
+          <div class="row">
+            <div data-bind="foreach: policies">
+              <g:render template="/menu/aclValidationRowKO"
+                        model="${[
+                                hasEditAuth  : hasEditAuth,
+                                hasDeleteAuth: hasDeleteAuth,
+                                hasCreateAuth: hasCreateAuth,
+                                editHref     : g.createLink(
+                                        [controller: 'menu', action: 'editProjectAclFile', params: [project: params.project, id: '<$>']]
+                                ),
+                                deleteModalId: 'deleteAclPolicy',
+                                uploadModalId: 'aclUpload',
+
+              ]}"/>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <g:render template="/menu/aclManageKO" model="[
+                                                deleteAction : [controller: 'menu', action: 'deleteProjectAclFile', params: [project: params.project]],
+                                                uploadModalId: 'aclUpload',
+                                                uploadAction : hasCreateAuth || hasEditAuth ? [controller: 'menu', action: 'saveProjectAclFile', params: [project: params.project, upload: true]] : null
+  ]"/>
+</div>
 </body>
 </html>

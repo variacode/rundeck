@@ -24,7 +24,9 @@ import com.dtolabs.rundeck.core.common.Framework
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import grails.converters.JSON
 import org.grails.plugins.metricsweb.MetricService
+import rundeck.ExecReport
 import rundeck.Execution
+import rundeck.ReferencedExecution
 import rundeck.ScheduledExecution
 import rundeck.services.ApiService
 import rundeck.services.ExecutionService
@@ -38,7 +40,7 @@ import com.dtolabs.rundeck.app.support.ReportQuery
 import rundeck.User
 import rundeck.ReportFilter
 import rundeck.services.FrameworkService
-import rundeck.filters.ApiRequestFilters
+import com.dtolabs.rundeck.app.api.ApiVersions
 
 class ReportsController extends ControllerBase{
     def reportService
@@ -121,6 +123,31 @@ class ReportsController extends ControllerBase{
             //auto date filter based on session login
             query.dostartafterFilter=true
             query.startafterFilter=new Date(session.creationTime)
+        }
+        if(params.includeJobRef && params.jobIdFilter){
+            ScheduledExecution.withTransaction {
+                ScheduledExecution sched = ScheduledExecution.get(params.jobIdFilter)
+                def list = ReferencedExecution.findAllByScheduledExecution(sched)
+                def include = []
+                list.each {refex ->
+                    boolean add = true
+                    if(refex.execution.project != params.project){
+                        if(unauthorizedResponse(frameworkService.authorizeProjectResourceAll(authContext, AuthorizationUtil
+                                .resourceType('event'), [AuthConstants.ACTION_READ],
+                                params.project), AuthConstants.ACTION_READ,'Events in project',refex.execution.project)){
+                            log.debug('Cant read executions on project '+refex.execution.project)
+                        }else{
+                            include << String.valueOf(refex.execution.id)
+                        }
+                    }else{
+                        include << String.valueOf(refex.execution.id)
+                    }
+                }
+                if(include){
+                    query.execIdFilter = include
+                }
+            }
+
         }
 
         if(null!=query){
@@ -231,18 +258,16 @@ class ReportsController extends ControllerBase{
                 }
             }
             json{
-                render(contentType:"text/json"){
-                    if(errmsg){
-                        delegate.error={
-                            delegate.message= flash.error
-                        }
-                    }else{
-                        delegate.since={
-                            delegate.count=count
-                            delegate.time= time
-                        }
-                    }
+                def out = [:]
+                if(errmsg){
+                    out.error = [message:flash.error]
+                }else{
+                    out.since = [
+                            count: count,
+                            time: time
+                    ]
                 }
+                render out as JSON
             }
             xml {
                 render(contentType:"text/xml"){
@@ -425,7 +450,7 @@ class ReportsController extends ControllerBase{
      * API, /api/14/project/PROJECT/history
      */
     def apiHistoryv14(ExecQuery query){
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+        if(!apiService.requireVersion(request,response,ApiVersions.V14)){
             return
         }
         return apiHistory(query)
@@ -442,7 +467,7 @@ class ReportsController extends ControllerBase{
                     code: 'api.error.parameter.required', args: ['project']])
         }
         if(params.jobListFilter || params.excludeJobListFilter){
-            if (!apiService.requireVersion(request,response,ApiRequestFilters.V5)) {
+            if (!apiService.requireVersion(request,response,ApiVersions.V5)) {
                 return
             }
         }
@@ -507,7 +532,7 @@ class ReportsController extends ControllerBase{
             (ExecutionService.EXECUTION_FAILED_WITH_RETRY): ExecutionService.EXECUTION_FAILED_WITH_RETRY,
             timeout: ExecutionService.EXECUTION_TIMEDOUT,
             (ExecutionService.EXECUTION_TIMEDOUT): ExecutionService.EXECUTION_TIMEDOUT]
-        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+        if (request.api_version < ApiVersions.V14 && !(response.format in ['all','xml'])) {
             return apiService.renderErrorFormat(response,[
                     status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
                     code: 'api.error.item.unsupported-format',

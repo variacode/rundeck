@@ -14,7 +14,7 @@
   - limitations under the License.
   --}%
 
-<%@ page import="com.dtolabs.rundeck.core.plugins.configuration.PropertyScope; com.dtolabs.rundeck.core.plugins.configuration.Description" %>
+<%@ page import="com.dtolabs.rundeck.core.plugins.configuration.PropertyScope; com.dtolabs.rundeck.core.plugins.configuration.Description; rundeck.controllers.ScheduledExecutionController" %>
 <g:set var="tkey" value="${g.rkey()}"/>
 <div class="notifyFields form-group"
      style="${wdgt.styleVisible(if: isVisible)}">
@@ -24,7 +24,33 @@
         <g:message code="notification.event.${trigger}"/>
     </div>
     <div class="col-sm-10 ">
+
+        <g:if test="${trigger == ScheduledExecutionController.OVERAVGDURATION_TRIGGER_NAME}">
+            <div class="row row-space form-inline">
+                <div  class="form-group col-sm-10">
+
+                    %{--Job notifyAvgDurationThreshold--}%
+                    <div class="input-group  input-group-sm">
+
+                        <label class="input-group-addon"><g:message code="scheduledExecution.property.notifyAvgDurationThreshold.label" default="Threshold"/></label>
+
+                        <input type='text' name="notifyAvgDurationThreshold" value="${enc(attr:scheduledExecution?.notifyAvgDurationThreshold)}"
+                               id="schedJobNotifyAvgDurationThreshold" class="form-control" size="40"/>
+
+                        <g:helpTooltip code="scheduledExecution.property.notifyAvgDurationThreshold.description"
+                                       css="input-group-addon text-info"/>
+
+                    </div>
+                </div>
+            </div>
+            <div class="row row-space form-inline">
+
+            </div>
+
+        </g:if>
+
         <div class="row row-space form-inline">
+
             <div class="form-group  col-sm-12 ${hasErrors(bean: scheduledExecution, field: triggerEmailRecipientsName,
                     'has-error')} ">
                 <g:checkBox name="${triggerEmailCheckboxName}" value="true" checked="${isEmail}"/>
@@ -127,7 +153,7 @@
                                           cols="40"
                                           class="form-control context_var_autocomplete"><g:enc>${notifurlcontent}</g:enc></textarea>
 
-                                <span class=" text-muted">
+                                <span class=" text-primary">
                                     <g:message code="notification.webhook.field.description"/>
                                 </span>
                             </g:if>
@@ -191,7 +217,7 @@
                             default="${pluginDescription.title?:pluginName}"/>
                 </label>
                     <g:if test="${pluginDescription['description']}">
-                        <span class="text-muted"><g:render template="/scheduledExecution/description"
+                        <span class="text-primary"><g:render template="/scheduledExecution/description"
                                                            model="[description:
                                                                            stepplugin.messageText(
                                                                                    service: 'Notification',
@@ -229,7 +255,7 @@
                             </g:if>
 
                             <g:if test="${!pluginDescription?.properties}">
-                                <span class="text-muted">
+                                <span class="text-primary">
                                     <g:message code="notification.plugin.configuration.noproperties.message"
                                                args="${[pluginDescription['title'] ?:
                                                        pluginDescription['name'] ?: pluginName]}"/>

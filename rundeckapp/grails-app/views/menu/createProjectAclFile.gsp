@@ -1,5 +1,5 @@
 %{--
-  - Copyright 2017 Rundeck, Inc. (http://rundeck.com)
+  - Copyright 2018 Rundeck, Inc. (http://rundeck.com)
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@
     <meta name="projtabtitle" content="${message(code: 'create.project.acl.file')}"/>
     <title><g:message code="create.project.acl.file"/></title>
 
-    <g:javascript library="prototype/effects"/>
+    <asset:javascript src="prototype/effects"/>
     <asset:javascript src="leavePageConfirm.js"/>
     <g:jsMessages code="page.unsaved.changes"/>
     <g:javascript>
@@ -85,6 +85,6 @@
     </g:form>
 </div>
 
-<!--[if (gt IE 8)|!(IE)]><!--> <g:javascript library="ace/ace"/><!--<![endif]-->
+<!--[if (gt IE 8)|!(IE)]><!--> <asset:javascript src="ace-bundle.js"/><!--<![endif]-->
 </body>
 </html>

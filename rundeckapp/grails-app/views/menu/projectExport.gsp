@@ -1,5 +1,5 @@
 %{--
-  - Copyright 2017 Rundeck, Inc. (http://rundeck.com)
+  - Copyright 2018 Rundeck, Inc. (http://rundeck.com)
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -32,12 +32,13 @@
 </head>
 
 <body>
-<div class="row">
-    <div class="col-sm-12">
-        <g:render template="/common/messages"/>
+  <div class="container-fluid">
+    <div class="row">
+        <div class="col-xs-12">
+            <g:render template="/common/messages"/>
+        </div>
     </div>
-</div>
-<g:render template="projectExportForm"/>
-
+    <g:render template="projectExportForm"/>
+  </div>
 </body>
 </html>

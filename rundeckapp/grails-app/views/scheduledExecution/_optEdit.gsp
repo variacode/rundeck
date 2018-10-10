@@ -84,7 +84,7 @@
                             name="${fileUploadPluginDescription.name}"
                             code="plugin.title"
                             default="${fileUploadPluginDescription.title ?: fileUploadPluginDescription.name}"/>
-                    <span class="text-muted"><g:render template="/scheduledExecution/description"
+                    <span class="text-primary"><g:render template="/scheduledExecution/description"
                                                        model="[description:
                                                                        stepplugin.messageText(
                                                                                service: 'FileUploadPluginService',
@@ -130,6 +130,24 @@
                         id="optname_${rkey}"/>
             </div>
         </div>
+        <div class="form-group">
+
+            <label for="optlabel_${rkey}"
+                   class="col-sm-2 control-label    ${hasErrors(bean: option, field: 'label', 'has-error')}"><g:message
+                    code="form.option.label.label"/></label>
+
+            <div class="col-sm-10">
+                <input type="text"
+                       class="form-control"
+                       name="label"
+                       id="opt_label"
+                       value="${enc(attr:option?.label)}"
+                       size="40"
+                       placeholder="Option Label"
+                />
+            </div>
+        </div>
+
         <div class="form-group ${hasErrors(bean: option, field: 'description', 'has-error')}">
 
             <label class="col-sm-2 control-label" for="optdesc_${rkey}" ><g:message code="form.option.description.label" /></label>
@@ -248,7 +266,7 @@
                                 <g:radio name="inputType" value="date" checked="${option?.isDate}" id="inputdate_${rkey}"/>
                             <g:message code="form.option.date.label"/>
                         </label>
-                        <span class="text-muted">
+                        <span class="text-primary">
                             <g:message code="form.option.date.description"/>
                         </span>
                     </div>
@@ -263,7 +281,7 @@
 
                             />
                         </label>
-                        <span class="text-muted">
+                        <span class="text-primary">
                         <g:markdown><g:message code="form.option.dateFormat.description.md" /></g:markdown>
                         </span>
                     </div>
@@ -279,7 +297,7 @@
 
                             <g:message code="form.option.secureExposed.true.label"/> <span class="text-danger small">&dagger;</span>
                         </label>
-                        <span class="text-muted">
+                        <span class="text-primary">
                             <g:message code="form.option.secureExposed.true.description"/>
                         </span>
 
@@ -293,7 +311,7 @@
                             <g:message code="form.option.secureExposed.false.label"/>
                             <span class="text-danger small">&dagger;</span>
                         </label>
-                        <span class="text-muted">
+                        <span class="text-primary">
                             <g:message code="form.option.secureExposed.false.description"/>
                         </span>
                     </div>
@@ -438,7 +456,7 @@
                                  class="evnonregex"/>
                         <g:message code="none" />
                     </label>
-                    <span class="text-muted"><g:message code="form.option.enforcedType.none.label" /></span>
+                    <span class="text-primary"><g:message code="form.option.enforcedType.none.label" /></span>
                 </div>
                 <div class="radio">
                     <label class="${hasErrors(bean:option,field:'enforced','fieldError')}">
@@ -580,7 +598,7 @@
         <div  class="row">
             <label class="col-sm-2 control-label"><g:message code="usage" /></label>
             <div class="col-sm-10 opt_sec_nexp_disabled" style="${wdgt.styleVisible(unless: option?.secureInput && !option?.secureExposed)}">
-                <span class="text-muted"><g:message code="the.option.values.will.be.available.to.scripts.in.these.forms" /></span>
+                <span class="text-primary"><g:message code="the.option.values.will.be.available.to.scripts.in.these.forms" /></span>
                 <div>
                     <g:message code="bash.prompt" /> <code>$<span data-bind="text: bashVarPreview"></span></code>
                 </div>

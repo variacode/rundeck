@@ -8,6 +8,7 @@ set -euo pipefail
 IFS=$'\n\t'
 readonly ARGS=("$@")
 DRYRUN=1
+SIGN=0
 . rd_versions.sh
 
 die(){
@@ -46,10 +47,14 @@ commit_tag(){
     local MESSAGE=${FARGS[1]}
     local TAG=${FARGS[0]}
     echo "Create tag $TAG.."
-    do_dryrun git tag -a $TAG -m "$MESSAGE"
+    if [ "$SIGN" == "1" ] ; then
+        do_dryrun git tag -s $TAG -m "$MESSAGE"
+    else
+        do_dryrun git tag -a $TAG -m "$MESSAGE"
+    fi
 }
 check_args(){
-    if [ ${#ARGS[@]} -ne 1 ] ; then
+    if [ ${#ARGS[@]} -lt 1 ] ; then
         usage
         exit 2
     fi
@@ -64,6 +69,9 @@ check_args(){
     else
         usage
         exit 2
+    fi
+    if [ ${#ARGS[@]} -gt 1 ] && [ "${ARGS[1]}" == "--sign" ] ; then
+        SIGN=1
     fi
 }
 check_release_notes(){
@@ -99,7 +107,7 @@ generate_release_name(){
             | sed "s#\$REL_TEXT#$REL_TEXT#"
     fi
 }
-#/ Run the makefile to copy RELEASE.md into the documentation source, and git add the changes.
+#/ Update date/name for release notes in RELEASE.md and git add the changes.
 generate_release_notes_documentation(){
     local NEW_VERS=$1
     local DDATE=$(date "+%Y-%m-%d")
@@ -111,16 +119,9 @@ generate_release_notes_documentation(){
     fi
     sed "s#Name: <span.*/span>#Name: $RELNAME#" < RELEASE.md > RELEASE.md.new
     mv RELEASE.md.new RELEASE.md
-    
-    make -C docs notes
+
     git add RELEASE.md
     git add CHANGELOG.md
-    git add docs/en/history/version-${NEW_VERS}.md
-    git add docs/en/history/toc.conf
-    git add docs/en/history/changelog.md
-    local out=$( git status --porcelain | grep '^M  docs/en/history/toc.conf') || die "docs/en/history/toc.conf was not modified"
-    out=$( git status --porcelain | grep "^A  docs/en/history/version-${NEW_VERS}.md") || die "docs/en/history/version-${NEW_VERS}.md was not added"
-    out=$( git status --porcelain | grep "^M  docs/en/history/changelog.md") || die "docs/en/history/changelog.md was not modified"
     out=$( git status --porcelain | grep "^M  CHANGELOG.md") || die "CHANGELOG.md was not modified"
 }
 

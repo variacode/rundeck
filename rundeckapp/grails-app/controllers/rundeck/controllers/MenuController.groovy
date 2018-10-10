@@ -34,6 +34,8 @@ import com.dtolabs.rundeck.core.common.Framework
 import com.dtolabs.rundeck.core.common.IRundeckProject
 import com.dtolabs.rundeck.core.plugins.configuration.PropertyScope
 import com.dtolabs.rundeck.plugins.file.FileUploadPlugin
+import com.dtolabs.rundeck.plugins.logging.LogFilterPlugin
+import com.dtolabs.rundeck.plugins.logs.ContentConverterPlugin
 import com.dtolabs.rundeck.plugins.scm.ScmPluginException
 import com.dtolabs.rundeck.plugins.storage.StorageConverterPlugin
 import com.dtolabs.rundeck.plugins.storage.StoragePlugin
@@ -43,17 +45,19 @@ import com.dtolabs.rundeck.server.plugins.services.StoragePluginProviderService
 import grails.converters.JSON
 import groovy.xml.MarkupBuilder
 import org.grails.plugins.metricsweb.MetricService
+import org.rundeck.util.Sizes
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import rundeck.Execution
 import rundeck.LogFileStorageRequest
+import rundeck.Project
 import rundeck.ScheduledExecution
 import rundeck.ScheduledExecutionFilter
 import rundeck.User
 import rundeck.codecs.JobsXMLCodec
 import rundeck.codecs.JobsYAMLCodec
-import rundeck.filters.ApiRequestFilters
+import com.dtolabs.rundeck.app.api.ApiVersions
 import rundeck.services.ApiService
 import rundeck.services.AuthorizationService
 import rundeck.services.ExecutionService
@@ -69,6 +73,7 @@ import rundeck.services.authorization.PoliciesValidation
 
 import javax.servlet.http.HttpServletResponse
 import java.lang.management.ManagementFactory
+import java.util.concurrent.TimeUnit
 
 class MenuController extends ControllerBase implements ApplicationContextAware{
     FrameworkService frameworkService
@@ -103,6 +108,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             deleteProjectAclFile           : 'POST',
             saveSystemAclFile              : 'POST',
             deleteSystemAclFile            : 'POST',
+            listExport                     : 'POST',
     ]
     def list = {
         def results = index(params)
@@ -181,7 +187,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         def running= results.nowrunning.collect {
             def map = it.toMap()
             def data = [
-                    status: ExecutionService.getExecutionState(it),
+                    status: it.executionState,
                     executionHref: createLink(controller: 'execution', action: 'show', absolute: true, id: it.id),
                     executionId: it.id,
                     duration: (it.dateCompleted?:new Date()).time - it.dateStarted.time
@@ -266,7 +272,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         if(!params.project){
             return redirect(controller: 'menu',action: 'home')
         }
-        
+        params['_gui_min_scm'] = true
         def results = jobsFragment(query)
         results.execQueryParams=query.asExecQueryParams()
         results.reportQueryParams=query.asReportQueryParams()
@@ -295,6 +301,9 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         }
         results.projectNames = authProjectsToCreate
         results.clusterModeEnabled = frameworkService.isClusterModeEnabled()
+        results.nextSchedListIds = results.nextScheduled?.collect {ScheduledExecution job->
+            job.extid
+        }
         withFormat{
             html {
                 results
@@ -329,10 +338,12 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         query.projFilter = params.project
         //test valid project
 
-        def exists=frameworkService.existsFrameworkProject(params.project)
-        if(!exists){
-            return apiService.renderErrorXml(response, [status: HttpServletResponse.SC_NOT_FOUND,
-                                                        code: 'api.error.item.doesnotexist', args: ['project',params.project]])
+        if (!apiService.requireExists(
+            response,
+            frameworkService.existsFrameworkProject(params.project),
+            ['project', params.project]
+        )) {
+            return
         }
         if(query.hasErrors()){
             return apiService.renderErrorFormat(response,
@@ -348,6 +359,22 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         def results = jobsFragment(query)
         def clusterModeEnabled = frameworkService.isClusterModeEnabled()
         def serverNodeUUID = frameworkService.serverUUID
+
+        //future scheduled executions forecast
+        def futureDate = null
+        if (query.daysAhead && query.daysAhead >= 0) {
+            futureDate = new Date() + query.daysAhead
+        } else if (params.future && Sizes.validTimeDuration(params.future)) {
+            def period = Sizes.parseTimeDuration(params.future, TimeUnit.MILLISECONDS)
+            futureDate = new Date(System.currentTimeMillis() + period)
+        }
+        def maxFutures = null
+        if (params.maxFutures) {
+            maxFutures = params.int('maxFutures')
+            if (maxFutures <= 0) {
+                maxFutures = null
+            }
+        }
         def data = new JobInfoList(
                 results.nextScheduled.collect { ScheduledExecution se ->
                     Map data = [:]
@@ -359,13 +386,13 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
                     }
                     if(results.nextExecutions?.get(se.id)){
                         data.nextScheduledExecution=results.nextExecutions?.get(se.id)
-                        if(query.daysAhead != null) {
-                            def maxSched = results.nextExecutions?.max{it.value}
-                            def to = new Date() + query.daysAhead
-                            if(to<maxSched.value){
-                                to = maxSched.value
+                        if (futureDate) {
+                            data.futureScheduledExecutions = se.nextExecutions(futureDate)
+                            if (maxFutures
+                                && data.futureScheduledExecutions
+                                && data.futureScheduledExecutions.size() > maxFutures) {
+                                data.futureScheduledExecutions = data.futureScheduledExecutions[0..<maxFutures]
                             }
-                            data.futureScheduledExecutions = se.nextExecutions(to)
                         }
                     }
                     if (se.totalTime >= 0 && se.execCount > 0) {
@@ -421,20 +448,35 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         def results=listWorkflows(query,authContext,session.user)
         //fill scm status
         if(params['_no_scm']!=true) {
+            def minScm = params['_gui_min_scm']
             if (frameworkService.authorizeApplicationResourceAny(authContext,
                                                                  frameworkService.authResourceForProject(
                                                                          params.project
                                                                  ),
                                                                  [AuthConstants.ACTION_ADMIN, AuthConstants.ACTION_EXPORT]
             )) {
+                if(frameworkService.isClusterModeEnabled()){
+                    if (!scmService.projectHasConfiguredExportPlugin(params.project)) {
+                        //initialize if in another node
+                        scmService.initProject(params.project, 'export')
+                    }
+                    if(minScm){
+                        scmService.fixExportStatus(params.project, results.nextScheduled)
+                    }
+                }
                 def pluginData = [:]
                 try {
                     if (scmService.projectHasConfiguredExportPlugin(params.project)) {
-                        pluginData.scmExportEnabled = true
-                        pluginData.scmStatus = scmService.exportStatusForJobs(results.nextScheduled)
-                        pluginData.scmExportStatus = scmService.exportPluginStatus(authContext, params.project)
-                        pluginData.scmExportActions = scmService.exportPluginActions(authContext, params.project)
-                        pluginData.scmExportRenamed = scmService.getRenamedJobPathsForProject(params.project)
+                        pluginData.scmExportEnabled = scmService.loadScmConfig(params.project, 'export').enabled
+                        if(pluginData.scmExportEnabled){
+
+                            if(!minScm){
+                                pluginData.scmStatus = scmService.exportStatusForJobs(results.nextScheduled)
+                                pluginData.scmExportStatus = scmService.exportPluginStatus(authContext, params.project)
+                                pluginData.scmExportRenamed = scmService.getRenamedJobPathsForProject(params.project)
+                            }
+                            pluginData.scmExportActions = scmService.exportPluginActions(authContext, params.project)
+                        }
                         results.putAll(pluginData)
                     }
                 } catch (ScmPluginException e) {
@@ -447,19 +489,55 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
                                                                  ),
                                                                  [AuthConstants.ACTION_ADMIN, AuthConstants.ACTION_IMPORT]
             )) {
-
+                if(frameworkService.isClusterModeEnabled()){
+                    if (!scmService.projectHasConfiguredImportPlugin(params.project)) {
+                        //initialize if in another node
+                        scmService.initProject(params.project, 'import')
+                    }
+                    if(minScm){
+                        scmService.fixImportStatus(params.project, results.nextScheduled)
+                        scmService.importPluginStatus(authContext, params.project)
+                    }
+                }
                 def pluginData = [:]
                 try {
                     if (scmService.projectHasConfiguredImportPlugin(params.project)) {
-                        pluginData.scmImportEnabled = true
-                        pluginData.scmImportJobStatus = scmService.importStatusForJobs(results.nextScheduled)
-                        pluginData.scmImportStatus = scmService.importPluginStatus(authContext, params.project)
-                        pluginData.scmImportActions = scmService.importPluginActions(authContext, params.project)
+                        pluginData.scmImportEnabled = scmService.loadScmConfig(params.project, 'import').enabled
+                        if(pluginData.scmImportEnabled){
+
+                            if(!minScm){
+                                pluginData.scmImportJobStatus = scmService.importStatusForJobs(results.nextScheduled)
+                                pluginData.scmImportStatus = scmService.importPluginStatus(authContext, params.project)
+                            }
+                            pluginData.scmImportActions = scmService.importPluginActions(authContext, params.project)
+                        }
                         results.putAll(pluginData)
                     }
 
                 } catch (ScmPluginException e) {
                     results.warning = "Failed to update SCM Import status: ${e.message}"
+                }
+            }
+            if (frameworkService.authorizeApplicationResourceAny(authContext,
+                    frameworkService.authResourceForProject(
+                            params.project
+                    ),
+                    [AuthConstants.ACTION_ADMIN, AuthConstants.ACTION_EXPORT, AuthConstants.ACTION_IMPORT]
+            )) {
+                if (minScm) {
+                    def pluginData = [:]
+                    def ePluginConfig = scmService.loadScmConfig(params.project, 'export')
+                    def iPluginConfig = scmService.loadScmConfig(params.project, 'import')
+                    def eConfiguredPlugin = null
+                    def iConfiguredPlugin = null
+                    if (ePluginConfig?.type) {
+                        eConfiguredPlugin = scmService.getPluginDescriptor('export', ePluginConfig.type)
+                    }
+                    if (iPluginConfig?.type) {
+                        iConfiguredPlugin = scmService.getPluginDescriptor('import', iPluginConfig.type)
+                    }
+                    pluginData.hasConfiguredPlugins = (eConfiguredPlugin || iConfiguredPlugin)
+                    results.putAll(pluginData)
                 }
             }
         }
@@ -568,7 +646,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         }
         // Filter the groups by what the user is authorized to see.
 
-        def decisions = frameworkService.authorizeProjectResources(authContext,res, new HashSet([AuthConstants.ACTION_READ, AuthConstants.ACTION_DELETE, AuthConstants.ACTION_RUN, AuthConstants.ACTION_UPDATE, AuthConstants.ACTION_KILL]),query.projFilter)
+        def decisions = frameworkService.authorizeProjectResources(authContext,res, new HashSet([AuthConstants.ACTION_VIEW, AuthConstants.ACTION_READ, AuthConstants.ACTION_DELETE, AuthConstants.ACTION_RUN, AuthConstants.ACTION_UPDATE, AuthConstants.ACTION_KILL]),query.projFilter)
         log.debug("listWorkflows(evaluate): "+(System.currentTimeMillis()-preeval));
 
         long viewable=System.currentTimeMillis()
@@ -599,7 +677,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
          */
         def jobgroups=[:]
         schedlist.each{ ScheduledExecution se->
-            authorizemap[se.id.toString()]=jobauthorizations[AuthConstants.ACTION_READ]?.contains(se.id.toString())
+            authorizemap[se.id.toString()]=jobauthorizations[AuthConstants.ACTION_READ]?.contains(se.id.toString())||jobauthorizations[AuthConstants.ACTION_VIEW]?.contains(se.id.toString())
             if(authorizemap[se.id.toString()]){
                 newschedlist<<se
                 if(!jobgroups[se.groupPath?:'']){
@@ -847,10 +925,10 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             withFormat{
                 ajax{
                     render(contentType: 'application/json'){
-                        status='ok'
-                        delegate.message=message
+                        status 'ok'
+                        delegate.message message
                         if(req){
-                            contents = exportRequestMap(req, true, false, null)
+                            contents exportRequestMap(req, true, false, null)
                         }
                     }
                 }
@@ -948,8 +1026,8 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             withFormat{
                 ajax{
                     render(contentType: 'application/json'){
-                        status='ok'
-                        delegate.message=message
+                        status 'ok'
+                        delegate.message message
                     }
                 }
             }
@@ -989,10 +1067,10 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             json{
                 render(contentType: "application/json") {
                     incompleteRequests {
-                        delegate.'total' = total
-                        max = params.max ?: 20
-                        offset = params.offset ?: 0
-                        contents = list.collect { LogFileStorageRequest req ->
+                        delegate.'total'  total
+                        max  params.max ?: 20
+                        offset  params.offset ?: 0
+                        contents  list.collect { LogFileStorageRequest req ->
                             exportRequestMap(
                                     req,
                                     retryIds.contains(req.id) || queuedIds.contains(req.id) || queuedIncompleteIds.contains(req.id),
@@ -1046,10 +1124,10 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             json{
                 render(contentType: "application/json") {
                     missingRequests {
-                        total = totalc
-                        max = params.max ?: 20
-                        offset = params.offset ?: 0
-                        contents = list.collect { Execution req ->
+                        total  totalc
+                        max  params.max ?: 20
+                        offset  params.offset ?: 0
+                        contents  list.collect { Execution req ->
                             [
                                     id     : req.id,
                                     project: req.project,
@@ -1953,6 +2031,12 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         pluginDescs['FileUploadPluginService']=pluginService.listPlugins(FileUploadPlugin).collect {
             it.value.description
         }.sort { a, b -> a.name <=> b.name }
+        pluginDescs['LogFilter'] = pluginService.listPlugins(LogFilterPlugin).collect {
+            it.value.description
+        }.sort { a, b -> a.name <=> b.name }
+        pluginDescs['ContentConverter']=pluginService.listPlugins(ContentConverterPlugin).collect {
+            it.value.description
+        }.sort { a, b -> a.name <=> b.name }
 
 
         def uiPluginProfiles = [:]
@@ -2039,7 +2123,8 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         if(configurationService.getBoolean("startup.detectFirstRun",true) &&
                 frameworkService.rundeckFramework.hasProperty('framework.var.dir')) {
             def vardir = frameworkService.rundeckFramework.getProperty('framework.var.dir')
-            def vers = grailsApplication.metadata['build.ident'].replaceAll('\\s+\\(.+\\)$','')
+            String buildIdent = grailsApplication.metadata.getProperty('build.ident', String)
+            def vers = buildIdent.replaceAll('\\s+\\(.+\\)$','')
             def file = new File(vardir, ".first-run-${vers}")
             if(!file.exists()){
                 isFirstRun=true
@@ -2051,10 +2136,13 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         long start = System.currentTimeMillis()
         def fprojects = frameworkService.projectNames(authContext)
+        def flabels = frameworkService.projectLabels(authContext)
         session.frameworkProjects = fprojects
+        session.frameworkLabels = flabels
         log.debug("frameworkService.projectNames(context)... ${System.currentTimeMillis() - start}")
         def stats=cachedSummaryProjectStats(fprojects)
-
+        
+        //isFirstRun = true //as
         render(view: 'home', model: [
                 isFirstRun:isFirstRun,
                 projectNames: fprojects,
@@ -2235,7 +2323,9 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         long start = System.currentTimeMillis()
         def fprojects = frameworkService.projectNames(authContext)
+        def flabels = frameworkService.projectLabels(authContext)
         session.frameworkProjects = fprojects
+        session.frameworkLabels = flabels
         log.debug("frameworkService.projectNames(context)... ${System.currentTimeMillis() - start}")
 
         render(contentType:'application/json',text:
@@ -2290,12 +2380,32 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         fprojects.each { IRundeckProject project->
             long sumstart=System.currentTimeMillis()
             summary[project.name]=allsummary[project.name]?:[:]
+            def description = Project.withNewSession{
+                Project.findByName(project.name)?.description
+            }
+            if(!description){
+                description = project.hasProperty("project.description")?project.getProperty("project.description"):''
+                if(description){
+                    Project.withNewSession{
+                        def proj = Project.findByName(project.name)
+                        if(proj){
+                            proj.description = description
+                            proj.save(flush: true)
+                        }
 
-            summary[project.name].description= project.hasProperty("project.description")?project.getProperty("project.description"):''
+                    }
+                }
+            }
+            summary[project.name].label= project.hasProperty("project.label")?project.getProperty("project.label"):''
+            summary[project.name].description= description
             if(!params.refresh) {
                 summary[project.name].readmeDisplay = menuService.getReadmeDisplay(project)
                 summary[project.name].motdDisplay = menuService.getMotdDisplay(project)
                 summary[project.name].readme = frameworkService.getFrameworkProjectReadmeContents(project)
+                summary[project.name].executionEnabled =
+                    scheduledExecutionService.isRundeckProjectExecutionEnabled(project)
+                summary[project.name].scheduleEnabled =
+                    scheduledExecutionService.isRundeckProjectScheduleEnabled(project)
                 //authorization
                 summary[project.name].auth = [
                         jobCreate: frameworkService.authorizeProjectResource(authContext, AuthConstants.RESOURCE_TYPE_JOB,
@@ -2356,7 +2466,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
      */
 
     def apiLogstorageInfo() {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V17)) {
+        if (!apiService.requireVersion(request, response, ApiVersions.V17)) {
             return
         }
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
@@ -2406,7 +2516,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
     }
 
     def apiLogstorageListIncompleteExecutions(BaseQuery query) {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V17)) {
+        if (!apiService.requireVersion(request, response, ApiVersions.V17)) {
             return
         }
         query.validate()
@@ -2512,7 +2622,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
     }
 
     def apiResumeIncompleteLogstorage() {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V17)) {
+        if (!apiService.requireVersion(request, response, ApiVersions.V17)) {
             return
         }
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
@@ -2562,30 +2672,31 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         query.projFilter = params.project
         //test valid project
 
-        def exists=frameworkService.existsFrameworkProject(params.project)
-        if(!exists){
-            return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_NOT_FOUND,
-                    code: 'api.error.item.doesnotexist', args: ['project', params.project]])
-
+        if (!apiService.requireExists(
+            response,
+            frameworkService.existsFrameworkProject(params.project),
+            ['project', params.project]
+        )) {
+            return
         }
         if(query.groupPathExact || query.jobExactFilter){
             //these query inputs require API version 2
-            if (!apiService.requireVersion(request,response,ApiRequestFilters.V2)) {
+            if (!apiService.requireVersion(request,response,ApiVersions.V2)) {
                 return
             }
         }
         if(null!=query.scheduledFilter || null!=query.serverNodeUUIDFilter){
-            if (!apiService.requireVersion(request,response,ApiRequestFilters.V17)) {
+            if (!apiService.requireVersion(request,response,ApiVersions.V17)) {
                 return
             }
         }
         if(null!=query.scheduleEnabledFilter || null!=query.executionEnabledFilter){
-            if (!apiService.requireVersion(request,response,ApiRequestFilters.V18)) {
+            if (!apiService.requireVersion(request,response,ApiVersions.V18)) {
                 return
             }
         }
 
-        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+        if (request.api_version < ApiVersions.V14 && !(response.format in ['all','xml'])) {
             return apiService.renderErrorFormat(response,[
                     status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
                     code: 'api.error.item.unsupported-format',
@@ -2609,7 +2720,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
      * API: get job info: /api/18/job/{id}/info
      */
     def apiJobDetail() {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V18)) {
+        if (!apiService.requireVersion(request, response, ApiVersions.V18)) {
             return
         }
 
@@ -2626,10 +2737,10 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
                 session.subject,
                 scheduledExecution.project
         )
-        if (!frameworkService.authorizeProjectJobAll(
+        if (!frameworkService.authorizeProjectJobAny(
                 authContext,
                 scheduledExecution,
-                [AuthConstants.ACTION_READ],
+                [AuthConstants.ACTION_READ,AuthConstants.ACTION_VIEW],
                 scheduledExecution.project
         )) {
             return apiService.renderErrorXml(
@@ -2682,7 +2793,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         def clusterModeEnabled = frameworkService.isClusterModeEnabled()
         def serverNodeUUID = frameworkService.serverUUID
 
-        if (request.api_version >= ApiRequestFilters.V18) {
+        if (request.api_version >= ApiVersions.V18) {
             //new response format mechanism
             //no <result> tag
             def data = new JobInfoList(
@@ -2715,7 +2826,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
                         results.each { ScheduledExecution se ->
                             def jobparams = [id: se.extid, href: apiService.apiHrefForJob(se),
                                              permalink: apiService.guiHrefForJob(se)]
-                            if (request.api_version >= ApiRequestFilters.V17) {
+                            if (request.api_version >= ApiVersions.V17) {
                                 jobparams.scheduled = se.scheduled
                                 jobparams.scheduleEnabled = se.scheduleEnabled
                                 jobparams.enabled = se.executionEnabled
@@ -2745,7 +2856,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
                                          description: (se.description),
                                          href       : apiService.apiHrefForJob(se),
                                          permalink  : apiService.guiHrefForJob(se)]
-                        if (request.api_version >= ApiRequestFilters.V17) {
+                        if (request.api_version >= ApiVersions.V17) {
                             jobparams.scheduled = se.scheduled
                             jobparams.scheduleEnabled = se.scheduleEnabled
                             jobparams.enabled = se.executionEnabled
@@ -2768,7 +2879,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
      * @return
      */
     def apiSchedulerListJobs(String uuid, boolean currentServer) {
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V17)) {
+        if (!apiService.requireVersion(request, response, ApiVersions.V17)) {
             return
         }
         if(currentServer) {
@@ -2799,10 +2910,10 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             projectAuths[project]
         }
         def authorized = list.findAll { ScheduledExecution se ->
-            frameworkService.authorizeProjectJobAll(
+            frameworkService.authorizeProjectJobAny(
                     authForProject(se.project),
                     se,
-                    [AuthConstants.ACTION_READ],
+                    [AuthConstants.ACTION_READ,AuthConstants.ACTION_VIEW],
                     se.project
             )
         }
@@ -2813,7 +2924,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
      * API: /api/2/project/NAME/jobs, version 2
      */
     def apiJobsListv2 (ScheduledExecutionQuery query) {
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V2)){
+        if(!apiService.requireVersion(request,response,ApiVersions.V2)){
             return
         }
         return apiJobsList(query)
@@ -2823,7 +2934,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
      * API: /api/14/project/NAME/jobs/export
      */
     def apiJobsExportv14 (ScheduledExecutionQuery query){
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+        if(!apiService.requireVersion(request,response,ApiVersions.V14)){
             return
         }
         return apiJobsExport(query)
@@ -2843,10 +2954,13 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         //test valid project
         Framework framework = frameworkService.getRundeckFramework()
 
-        def exists=frameworkService.existsFrameworkProject(params.project)
-        if(!exists){
-            return apiService.renderErrorXml(response, [status: HttpServletResponse.SC_NOT_FOUND,
-                    code: 'api.error.item.doesnotexist', args: ['project',params.project]])
+
+        if (!apiService.requireExists(
+            response,
+            frameworkService.existsFrameworkProject(params.project),
+            ['project', params.project]
+        )) {
+            return
         }
         //don't load scm status for api response
         params['_no_scm']=true
@@ -2871,7 +2985,7 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
      * API: /project/PROJECT/executions/running, version 14
      */
     def apiExecutionsRunningv14 (){
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+        if(!apiService.requireVersion(request,response,ApiVersions.V14)){
             return
         }
         return apiExecutionsRunning()
@@ -2892,14 +3006,13 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
         Framework framework = frameworkService.getRundeckFramework()
 
         //allow project='*' to indicate all projects
-        def allProjects = request.api_version >= ApiRequestFilters.V9 && params.project == '*'
+        def allProjects = request.api_version >= ApiVersions.V9 && params.project == '*'
         if(!allProjects){
-            if(!frameworkService.existsFrameworkProject(params.project)){
-                return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_NOT_FOUND,
-                        code: 'api.error.parameter.doesnotexist', args: ['project',params.project]])
+            if(!apiService.requireExists(response,frameworkService.existsFrameworkProject(params.project),['project',params.project])){
+                return
             }
         }
-        if (request.api_version < ApiRequestFilters.V14 && !(response.format in ['all','xml'])) {
+        if (request.api_version < ApiVersions.V14 && !(response.format in ['all','xml'])) {
             return apiService.renderErrorXml(response,[
                     status:HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
                     code: 'api.error.item.unsupported-format',
@@ -2943,6 +3056,116 @@ class MenuController extends ControllerBase implements ApplicationContextAware{
             }
         }
 
+    }
+
+
+    def listExport(){
+        UserAndRolesAuthContext authContext
+        def query = new ScheduledExecutionQuery()
+        query.idlist = params.nextScheduled
+        query.projFilter = params.project
+        authContext = frameworkService.getAuthContextForSubject(session.subject)
+        def result = listWorkflows(query, authContext,session.user)
+
+        def results=[:]
+        if (frameworkService.authorizeApplicationResourceAny(authContext,
+                frameworkService.authResourceForProject(
+                        params.project
+                ),
+                [AuthConstants.ACTION_ADMIN, AuthConstants.ACTION_EXPORT]
+        )) {
+            def pluginData = [:]
+            if(frameworkService.isClusterModeEnabled()){
+                //initialize if in another node
+                scmService.initProject(params.project,'export')
+            }
+            try {
+                if (scmService.projectHasConfiguredExportPlugin(params.project)) {
+                    pluginData.scmExportEnabled = scmService.loadScmConfig(params.project, 'export')?.enabled
+                    if(pluginData.scmExportEnabled){
+                        pluginData.scmStatus = scmService.exportStatusForJobs(result.nextScheduled)
+                        pluginData.scmExportStatus = scmService.exportPluginStatus(authContext, params.project)
+                        pluginData.scmExportActions = scmService.exportPluginActions(authContext, params.project)
+                        pluginData.scmExportRenamed = scmService.getRenamedJobPathsForProject(params.project)
+                    }
+                    results.putAll(pluginData)
+                }
+            } catch (ScmPluginException e) {
+                results.warning = "Failed to update SCM Export status: ${e.message}"
+            }
+        }
+        if (frameworkService.authorizeApplicationResourceAny(authContext,
+                frameworkService.authResourceForProject(
+                        params.project
+                ),
+                [AuthConstants.ACTION_ADMIN, AuthConstants.ACTION_IMPORT]
+        )) {
+            if(frameworkService.isClusterModeEnabled()){
+                //initialize if in another node
+                scmService.initProject(params.project,'import')
+            }
+            def pluginData = [:]
+            try {
+                if (scmService.projectHasConfiguredImportPlugin(params.project)) {
+                    pluginData.scmImportEnabled = scmService.loadScmConfig(params.project, 'import')?.enabled
+                    if(pluginData.scmImportEnabled){
+                        pluginData.scmImportJobStatus = scmService.importStatusForJobs(result.nextScheduled)
+                        pluginData.scmImportStatus = scmService.importPluginStatus(authContext, params.project)
+                        pluginData.scmImportActions = scmService.importPluginActions(authContext, params.project)
+                    }
+                    results.putAll(pluginData)
+                }
+
+            } catch (ScmPluginException e) {
+                results.warning = "Failed to update SCM Import status: ${e.message}"
+            }
+        }
+        render(results as JSON)
+    }
+
+
+    def projectToggleSCM(){
+        AuthContext authContext = frameworkService.getAuthContextForSubjectAndProject(session.subject, params.project)
+        if (unauthorizedResponse(
+                frameworkService.authorizeApplicationResourceAll(
+                        authContext,
+                        frameworkService.authResourceForProject(params.project),
+                        [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
+                ),
+                AuthConstants.ACTION_CONFIGURE, 'Project', params.project
+        )) {
+            return
+        }
+        def ePluginConfig = scmService.loadScmConfig(params.project, 'export')
+        def iPluginConfig = scmService.loadScmConfig(params.project, 'import')
+        def eConfiguredPlugin = null
+        def iConfiguredPlugin = null
+        if (ePluginConfig?.type) {
+            eConfiguredPlugin = scmService.getPluginDescriptor('export', ePluginConfig.type)
+        }
+        if (iPluginConfig?.type) {
+            iConfiguredPlugin = scmService.getPluginDescriptor('import', iPluginConfig.type)
+        }
+        def eEnabled = ePluginConfig?.enabled && scmService.projectHasConfiguredPlugin('export', params.project)
+        def iEnabled = iPluginConfig?.enabled && scmService.projectHasConfiguredPlugin('import', params.project)
+
+        if(eEnabled || iEnabled){
+            //at least one active plugin, disable
+            if(eConfiguredPlugin){
+                scmService.disablePlugin('export', params.project, eConfiguredPlugin.name)
+            }
+            if(iConfiguredPlugin){
+                scmService.disablePlugin('import', params.project, iConfiguredPlugin.name)
+            }
+        }else{
+            if(eConfiguredPlugin){
+                scmService.enablePlugin(authContext, 'export', params.project, eConfiguredPlugin.name)
+            }
+            if(iConfiguredPlugin){
+                scmService.enablePlugin(authContext, 'import', params.project, iConfiguredPlugin.name)
+            }
+        }
+        return redirect(controller:'menu',action:'jobs', params: [project: params.project])
     }
 }
 

@@ -95,7 +95,7 @@ grails.project.dependency.resolution = {
         compile (':asset-pipeline:2.7.2')
         compile ':cache:1.1.8'
         compile ":platform-core:1.0.0"
-        runtime (':hibernate4:4.3.10')
+        runtime (':hibernate5:5.1.5')
         runtime ':mail:1.0.7', ':quartz:1.0.2', ':executor:0.3'
 
         runtime ':profiler:0.5'
@@ -114,10 +114,11 @@ grails.project.dependency.resolution = {
                 'log4j:log4j:1.2.17',
                 'commons-collections:commons-collections:3.2.2',
                 'commons-codec:commons-codec:1.5',
-                'com.fasterxml.jackson.core:jackson-databind:2.8.10',
-                'com.fasterxml.jackson.core:jackson-annotations:2.8.10',
+                'com.fasterxml.jackson.core:jackson-core:2.8.11',
+                'com.fasterxml.jackson.core:jackson-databind:2.8.11.1',
+                'com.fasterxml.jackson.core:jackson-annotations:2.8.11',
                 'com.codahale.metrics:metrics-core:3.0.1',
-                'com.google.guava:guava:15.0',
+                'com.google.guava:guava:24.1.1-jre',
                 'org.owasp.encoder:encoder:1.2',
                 'org.quartz-scheduler:quartz:2.2.1',
                 'com.atlassian.commonmark:commonmark:0.9.0',

@@ -20,10 +20,11 @@ import com.dtolabs.rundeck.core.authorization.AuthContext
 import com.dtolabs.rundeck.core.authorization.UserAndRolesAuthContext
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import grails.converters.JSON
+import grails.core.GrailsApplication
 import org.rundeck.util.Sizes
 import rundeck.AuthToken
 import rundeck.User
-import rundeck.filters.ApiRequestFilters
+import com.dtolabs.rundeck.app.api.ApiVersions
 import rundeck.services.FrameworkService
 import rundeck.services.UserService
 
@@ -33,7 +34,7 @@ class UserController extends ControllerBase{
 
     UserService userService
     FrameworkService frameworkService
-    def grailsApplication
+    GrailsApplication grailsApplication
     def apiService
     def configurationService
 
@@ -173,7 +174,7 @@ class UserController extends ControllerBase{
     }
 
     def apiUserData(){
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V21)) {
+        if (!apiService.requireVersion(request, response, ApiVersions.V21)) {
             return
         }
         def respFormat = apiService.extractResponseFormat(request, response, ['xml', 'json'])
@@ -280,7 +281,7 @@ class UserController extends ControllerBase{
     }
 
     def apiUserList(){
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V21)) {
+        if (!apiService.requireVersion(request, response, ApiVersions.V21)) {
             return
         }
         def respFormat = apiService.extractResponseFormat(request, response, ['xml', 'json'])
@@ -695,9 +696,9 @@ class UserController extends ControllerBase{
         u.dashboardPref=params.dpref
         u.save()
 
-        render(contentType:"text/json"){
-            delegate.result="success"
-            delegate.dashboard=u.dashboardPref
+        render(contentType:"application/json"){
+            delegate.result "success"
+            delegate.dashboard u.dashboardPref
         }
     }
 
@@ -712,16 +713,16 @@ class UserController extends ControllerBase{
             //include new request tokens as headers in response
             g.refreshFormTokensHeader()
 
-            render(contentType:"text/json"){
-                delegate.result="success"
-                delegate.filterpref=storedpref
+            render(contentType:"application/json"){
+                delegate.result "success"
+                delegate.filterpref storedpref
             }
 
         }.invalidToken{
             response.status= HttpServletResponse.SC_BAD_REQUEST
-            render(contentType: "text/json") {
-                delegate.result = "error"
-                delegate.message=g.message(code:'request.error.invalidtoken.message')
+            render(contentType: "application/json") {
+                delegate.result  "error"
+                delegate.message g.message(code:'request.error.invalidtoken.message')
             }
         }
     }

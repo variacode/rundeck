@@ -32,7 +32,7 @@ class Export extends Common {
             title = 'Committer Name',
             description = '''Name of committer/author of changes.
 
-Can be set to `${user.firstName} ${user.lastName}` or
+Can be set to `${user.login}` (login name), or `${user.firstName} ${user.lastName}` or
 `${user.fullName}` to expand as the name
 of the committing user.''',
             defaultValue = '${user.fullName}',
@@ -67,6 +67,19 @@ Template".
     @SelectValues(values = ['preserve', 'original', 'remove'])
     String exportUuidBehavior
 
+    @PluginProperty(
+            title = "Synchronize Automatically",
+            description = "Automatically pull remote changes on automatic fetch. If false, you can perform it manually",
+            defaultValue = 'false',
+            required = false
+    )
+    @SelectValues(values = ['true', 'false'])
+    @RenderingOption(
+            key = StringRenderingConstants.GROUP_NAME,
+            value = "Git Repository"
+    )
+    String pullAutomatically
+
     boolean isExportPreserve() {
         exportUuidBehavior == 'preserve' || !exportUuidBehavior
     }
@@ -75,5 +88,9 @@ Template".
     }
     boolean isExportRemove() {
         exportUuidBehavior == 'remove'
+    }
+
+    boolean shouldPullAutomatically(){
+        return pullAutomatically in ['true']
     }
 }

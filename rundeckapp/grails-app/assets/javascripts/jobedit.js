@@ -54,7 +54,7 @@ function _removeOptionName(name) {
     var findname = function (e) {
         return e.name === name;
     };
-    var found = _jobOptionData.find(findname);
+    var found = _jobOptionData.findIndex(findname);
     if (found >= 0) {
         _jobOptionData.splice(found, 1);
     }
@@ -85,6 +85,7 @@ function _jobVarData() {
         var jobdata = {
             'id': {title: 'Job ID'},
             'execid': {title: 'Execution ID'},
+            'executionType': {title: 'Execution Type'},
             'name': {title: 'Job Name'},
             'group': {title: 'Job Group'},
             'username': {title: 'Name of user executing the job'},
@@ -92,11 +93,12 @@ function _jobVarData() {
             'loglevel': {title: 'Execution log level', desc: 'Logging level, one of: INFO, DEBUG'},
             'user.email': {title: 'Email of user executing the job'},
             'retryAttempt': {title: 'Retry attempt number'},
+            'retryInitialExecId': {title: 'Retry Original Execution ID'},
             'wasRetry': {title: 'True if execution is a retry'},
             'threadcount': {title: 'Job Threadcount'},
             'filter': {title: 'Job Node Filter Query'}
         };
-        ['id', 'execid', 'name', 'group', 'username', 'project', 'loglevel', 'user.email', 'retryAttempt', 'wasRetry', 'threadcount', 'filter'].each(function (e) {
+        ['id', 'execid', 'executionType', 'name', 'group', 'username', 'project', 'loglevel', 'user.email', 'retryAttempt', 'wasRetry', 'threadcount', 'filter','retryInitialExecId'].each(function (e) {
             _VAR_DATA['job'].push({key: 'job.' + e, category: 'Job', title: jobdata[e].title, desc: jobdata[e].desc});
         });
     }
@@ -248,6 +250,16 @@ function addWfAutocomplete(liitem, iseh, isnodestepfunc, istextareatemplatemode,
                     desc: 'For option: ' + _jobOptionData[x].name
                 }
             });
+            if(_jobOptionData[x].multivalued == true){
+                expvars.push({
+                    value: mkvar('option.' + _jobOptionData[x].name + '.delimiter' ),
+                    data: {
+                        category: 'Options',
+                        title: 'Option Delimeter value',
+                        desc: 'For option: ' + _jobOptionData[x].name
+                    }
+                });
+            }
             if (mode) {
                 expvars.push({
                     value: mkmodevar('option.' + _jobOptionData[x].name),
@@ -257,6 +269,17 @@ function addWfAutocomplete(liitem, iseh, isnodestepfunc, istextareatemplatemode,
                         desc: 'For option: ' + _jobOptionData[x].name
                     }
                 });
+
+                if(_jobOptionData[x].multivalued == true){
+                    expvars.push({
+                        value: mkmodevar('option.' + _jobOptionData[x].name + '.delimiter' ),
+                        data: {
+                            category: 'Options',
+                            title: 'Option value',
+                            desc: 'For option: ' + _jobOptionData[x].name
+                        }
+                    });
+                }
             }
             if (_jobOptionData[x].type == 'file') {
                 expvars.push({
@@ -361,7 +384,7 @@ function addWfAutocomplete(liitem, iseh, isnodestepfunc, istextareatemplatemode,
         })
     });
 }
-function _initJobPickerAutocomplete(nameid, groupid, projid) {
+function _initJobPickerAutocomplete(uuid,nameid, groupid, projid) {
     "use strict";
     var currentProject = jQuery('#schedEditFrameworkProject').val();
     jQuery("#" + nameid).devbridgeAutocomplete({
@@ -383,6 +406,8 @@ function _initJobPickerAutocomplete(nameid, groupid, projid) {
         onSelect: function (selected) {
             //set group from selected job
             jQuery('#' + groupid).val(selected.data.group);
+            //set uuid
+            jQuery('#' + uuid).val(selected.data.id);
         }
     });
 }
@@ -428,6 +453,10 @@ function _wfisave(key,num, formelem,iseh) {
                 _showWFItemControls();
                 if (iseh) {
                     _hideWFItemControlsAddEH(num);
+                    if (litem.parent().closest('li').find('.wfitem.jobtype').size() > 0) {
+                        //disable the config button
+                        _disableWFItemControlsConfigButton(num)
+                    }
                 }
             }else{
                 postLoadItemEdit('#wfli_' + key, iseh);
@@ -554,7 +583,11 @@ function _showWFItemControls() {
 }
 function _hideWFItemControlsAddEH(num){
     var lielem=jQuery('#wfli_'+num);
-    lielem.find('.wfitem_add_errorhandler').hide();
+    lielem.find('.wfitem_add_errorhandler').parent().hide();
+}
+function _disableWFItemControlsConfigButton(num){
+    var lielem=jQuery('#wfli_'+num);
+    lielem.find('.wfitemcontrols .btn-group button.dropdown-toggle').attr('disabled','disabled');
 }
 
 function _evtNewEHChooseType(evt){
@@ -858,12 +891,17 @@ function _optview(name, target) {
 function _optsave(formelem, tokendataid, target) {
     jobWasEdited();
     $('optsload').loading();
+    var optname = jQuery('#' + formelem + ' :input[name=name]').val();
+    var opttype = jQuery('#' + formelem + ' :input[name=type]').val();
+    var multivalued = jQuery('#' + formelem + ' :input[name=multivalued]:checked').val() == "true" ? true : false
     jQuery.ajax({
         type: "POST",
         url:_genUrl(appLinks.editOptsSave,{jobWasScheduled:_isjobScheduled()}),
         data: jQuery('#'+formelem+" :input").serialize(),
         beforeSend: _ajaxSendTokens.curry(tokendataid),
         success:function(data,status,xhr){
+            _removeOptionName(optname);
+            _addOption({name: optname, type: opttype, multivalued: multivalued});
             jQuery(target).html(data);
             if (jQuery(target).find('div.optEditForm').length<1) {
                 _showOptControls();
@@ -946,6 +984,7 @@ function _optsavenew(formelem,tokendataid) {
     var params = jQuery('#'+formelem+' :input').serialize();
     var optname = jQuery('#' + formelem + ' :input[name=name]').val();
     var opttype = jQuery('#' + formelem + ' :input[name=type]').val();
+    var multivalued = jQuery('#' + formelem + ' :input[name=multivalued]:checked').val() == "true" ? true : false
     $('optsload').loading();
     jQuery.ajax({
         type: "POST",
@@ -954,7 +993,7 @@ function _optsavenew(formelem,tokendataid) {
         beforeSend: _ajaxSendTokens.curry(tokendataid),
         success: function (data, status, xhr) {
             jQuery(newoptli).html(data);
-            _addOption({name: optname, type: opttype});
+            _addOption({name: optname, type: opttype, multivalued: multivalued});
             if (!newoptli.down('div.optEditForm')) {
                 $(newoptli).highlight();
                 newoptli = null;
@@ -1087,13 +1126,16 @@ function _doRevertOptsAction() {
 }
 
 //job chooser
+var uuidField;
 var jobNameFieldId;
 var jobGroupFieldId;
-function jobChosen(name, group, elem) {
+function jobChosen(uuid, name, group, elem) {
     jobWasEdited();
-    if (jobNameFieldId && jobGroupFieldId) {
+    if (uuidField && jobNameFieldId && jobGroupFieldId) {
+        jQuery('#' + uuidField).val(uuid);
         jQuery('#' + jobNameFieldId).val(name);
         jQuery('#' + jobGroupFieldId).val(group);
+        doyftsuccess(uuidField);
         doyftsuccess(jobNameFieldId);
         doyftsuccess(jobGroupFieldId);
     }
@@ -1102,11 +1144,12 @@ function jobChosen(name, group, elem) {
     }
 }
 
-function loadJobChooserModal(elem, nameid, groupid, projectid, modalid, modalcontentid) {
+function loadJobChooserModal(elem, uuid, nameid, groupid, projectid, modalid, modalcontentid) {
     if (jQuery(elem).hasClass('active')) {
         jQuery('#' + modalid).modal('hide');
         return;
     }
+    uuidField = uuid;
     jobNameFieldId = nameid;
     jobGroupFieldId = groupid;
     var project = selFrameworkProject;

@@ -38,9 +38,9 @@
 <g:set var="offsetColSize" value="col-sm-10 col-sm-offset-2"/>
 
 <g:set var="editSchedExecId" value="${scheduledExecution?.id? scheduledExecution.extid:null}"/>
-<g:javascript library="prototype/scriptaculous"/>
-<g:javascript library="prototype/effects"/>
-<g:javascript library="prototype/dragdrop"/>
+<asset:javascript src="prototype/scriptaculous"/>
+<asset:javascript src="prototype/effects"/>
+<asset:javascript src="prototype/dragdrop"/>
 <g:set var="project" value="${scheduledExecution?.project ?: params.project?:request.project?: projects?.size() == 1 ? projects[0].name : ''}"/>
 <script type="text/javascript">
 //<!CDATA[
@@ -173,6 +173,7 @@ function getCurSEID(){
             ko.applyBindings(nodeFilter,jQuery('#nodegroupitem')[0]);
             registerNodeFilters(nodeFilter, '#nodegroupitem');
             nodeSummary.reload();
+            nodeFilter.updateMatchedNodes();
             jQuery('body').on('click', '.nodefilterlink', function (evt) {
                 evt.preventDefault();
                 handleNodeFilterLink(this);
@@ -218,7 +219,7 @@ function getCurSEID(){
     /*** ***/
     div.wfctrlholder{
         position:relative;
-        padding-right:150px;
+        padding-right:170px;
     }
     .wfitem{
         display: block;
@@ -229,7 +230,7 @@ function getCurSEID(){
         position:absolute;
         right:0;
         top:0;
-        width:150px;
+        width:160px;
         text-align:right;
     }
     .controls.autohide{
@@ -366,7 +367,6 @@ function getCurSEID(){
     <input type="hidden" name="id" value="${enc(attr:scheduledExecution.extid)}"/>
 </g:if>
 
-
 <div class="alert alert-danger" style="display: none" id="editerror">
 
 </div>
@@ -427,9 +427,7 @@ function getCurSEID(){
             <ul class="nav nav-tabs">
 
                 <li class="active"><a href="#desceditor" data-toggle="tab">Edit</a></li>
-                <li id="previewrunbook" style="${wdgt.styleVisible(
-                        if: g.textHasMarker(text:scheduledExecution?.description,marker:ScheduledExecution.RUNBOOK_MARKER)
-                )}">
+                <li id="previewrunbook" style="${wdgt.styleVisible(if: g.textHasMarker(text:scheduledExecution?.description,marker:ScheduledExecution.RUNBOOK_MARKER))}">
                     <a href="#descpreview" data-toggle="tab">
                         <g:message code="job.editor.preview.runbook" />
                     </a>
@@ -502,7 +500,11 @@ function getCurSEID(){
             <div class="${fieldColSize}">
 
                 <div  id="editoptssect" class="rounded">
-                    <g:render template="/scheduledExecution/detailsOptions" model="${[options:scheduledExecution?.options,edit:true]}"/>
+                    <%
+                        def tmpse = ScheduledExecution.get(scheduledExecution.id)
+                        def options = tmpse?tmpse.options:scheduledExecution.options
+                    %>
+                    <g:render template="/scheduledExecution/detailsOptions" model="${[options:options,edit:true]}"/>
                     <g:if test="${scheduledExecution && scheduledExecution.argString}">
                         <g:render template="/execution/execArgString" model="[argString: scheduledExecution.argString]"/>
                     </g:if>
@@ -669,7 +671,7 @@ function getCurSEID(){
                     <g:message code="refresh" />
                     <i class="glyphicon glyphicon-refresh"></i>
                 </button>
-                <span class="text-muted" data-bind="if: loaded" >
+                <span class="text-primary" data-bind="if: loaded" >
                     <span data-bind="messageTemplate: [total,nodesTitle]"><g:message code="count.nodes.matched"/></span>
                 </span>
                 <div id='matchednodes' class="clearfix">
@@ -704,7 +706,7 @@ function getCurSEID(){
             </div>
         </div>
 
-        <div class="form-group ${hasErrors(bean: scheduledExecution, field: 'nodeThreadcount', 'has-error')}">
+        <div class="form-group ${hasErrors(bean: scheduledExecution, field: 'nodeThreadcountDynamic', 'has-error')}">
             <label for="schedJobnodeThreadcount" class="${labelColClass}">
                 <g:message code="scheduledExecution.property.nodeThreadcount.label"/>
             </label>
@@ -712,16 +714,16 @@ function getCurSEID(){
             <div class="${fieldColSize}">
                 <div class="row">
                 <div class="col-sm-4">
-                <input type='number' name="nodeThreadcount"
-                       value="${enc(attr:scheduledExecution?.nodeThreadcount)}" id="schedJobnodeThreadcount"
+                <input type='text' name="nodeThreadcountDynamic"
+                       value="${enc(attr:scheduledExecution?.nodeThreadcountDynamic)}" id="schedJobnodeThreadcount"
                        size="3"
                        class="form-control input-sm"/>
                 </div>
                 </div>
-                <g:hasErrors bean="${scheduledExecution}" field="nodeThreadcount">
+                <g:hasErrors bean="${scheduledExecution}" field="nodeThreadcountDynamic">
                     <div class="text-warning">
                         <i class="glyphicon glyphicon-warning-sign"></i>
-                        <g:renderErrors bean="${scheduledExecution}" as="list" field="nodeThreadcount"/>
+                        <g:renderErrors bean="${scheduledExecution}" as="list" field="nodeThreadcountDynamic"/>
                     </div>
                 </g:hasErrors>
                 <span class="help-block">
@@ -1051,6 +1053,22 @@ function getCurSEID(){
     %{--Job timeout--}%
     <div class="form-group">
         <div class="${labelColSize} control-label text-form-label">
+            <g:message code="scheduledExecution.property.maxMultipleExecutions.label"/>
+        </div>
+
+        <div class="${fieldColHalfSize}">
+
+            <input type='text' name="maxMultipleExecutions" value="${enc(attr:scheduledExecution?.maxMultipleExecutions)}"
+                   id="maxMultipleExecutions" class="form-control"/>
+
+            <span class="help-block">
+                <g:message code="scheduledExecution.property.maxMultipleExecutions.description"/>
+            </span>
+        </div>
+    </div>
+    %{--Job timeout--}%
+    <div class="form-group">
+        <div class="${labelColSize} control-label text-form-label">
             <g:message code="scheduledExecution.property.timeout.label" default="Timeout"/>
         </div>
 
@@ -1146,16 +1164,56 @@ function getCurSEID(){
         </div>
     </div>
 
+    %{--default exec tab--}%
+    <div class="form-group">
+        <div class="${labelColSize} control-label text-form-label">
+            <g:message code="scheduledExecution.property.defaultTab.label"/>
+        </div>
+
+        <div class="${fieldColSize}">
+            <label class="radio-inline">
+                <g:radio value="summary" name="defaultTab"
+                         checked="${!scheduledExecution.defaultTab || scheduledExecution.defaultTab=='summary'}"
+                         id="tabSummary"/>
+                <g:message code="execution.page.show.tab.Summary.title"/>
+            </label>
+
+            <label class="radio-inline">
+                <g:radio name="defaultTab" value="monitor"
+                         checked="${scheduledExecution.defaultTab=='monitor'}"
+                         id="tabMonitor"/>
+                <g:message code="report"/>
+            </label>
+
+            <label class="radio-inline">
+                <g:radio name="defaultTab" value="output"
+                         checked="${scheduledExecution.defaultTab=='output'}"
+                         id="tabOutput"/>
+                <g:message code="execution.show.mode.Log.title"/>
+            </label>
+
+            <label class="radio-inline">
+                <g:radio name="defaultTab" value="definition"
+                         checked="${scheduledExecution.defaultTab=='definition'}"
+                         id="tabDefinition"/>
+                <g:message code="definition"/>
+            </label>
+
+            <span class="help-block">
+                <g:message code="scheduledExecution.property.defaultTab.description"/>
+            </span>
+        </div>
+    </div>
 
     %{--uuid--}%
     <div class="form-group ${hasErrors(bean: scheduledExecution, field: 'uuid', 'has-error')}" id="schedJobUuidLabel">
-        <label for="schedJobUuid" class=" ${enc(attr:labelColClass)} text-muted">
+        <label for="schedJobUuid" class=" ${enc(attr:labelColClass)} text-primary">
             <g:message code="uuid" />
         </label>
 
         <div class="${fieldColSize}">
             <g:if test="${editSchedExecId && scheduledExecution?.uuid}">
-                <p class="form-control-static text-muted" title="${g.message(code:'uuid.for.this.job')}">
+                <p class="form-control-static text-primary" title="${g.message(code:'uuid.for.this.job')}">
                     <g:enc>${scheduledExecution?.uuid}</g:enc>
                 </p>
             </g:if>
@@ -1180,8 +1238,8 @@ function getCurSEID(){
         _initPopoverContentRef();
     }
 </g:javascript>
-<!--[if (gt IE 8)|!(IE)]><!--> <g:javascript library="ace/ace"/><!--<![endif]-->
-<!--[if (gt IE 8)|!(IE)]><!--> <g:javascript library="ace/ext-language_tools"/><!--<![endif]-->
+<!--[if (gt IE 8)|!(IE)]><!--> <asset:javascript src="ace-bundle.js"/><!--<![endif]-->
+<!--[if (gt IE 8)|!(IE)]><!--> <asset:javascript src="ace/ext-language_tools.js"/><!--<![endif]-->
 <div id="msg"></div>
 
     <g:render template="/framework/storageBrowseModalKO"/>

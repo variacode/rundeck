@@ -14,7 +14,7 @@
   - limitations under the License.
   --}%
 
-<%@ page import="java.util.regex.Pattern; grails.converters.deep.JSON; grails.util.Environment" %>
+<%@ page import="java.util.regex.Pattern; grails.converters.JSON; grails.util.Environment" %>
 <%--
 used by _editOptions.gsp template
 --%>
@@ -35,6 +35,7 @@ used by _editOptions.gsp template
                                   (optionordering ?: optsmap.keySet().sort()).collect {
                                       def optionSelect = optsmap[it].selopt
                                       def optName = optionSelect.name
+                                      def optLabel = optionSelect.label
                                       def selectedMultiValues = null
                                       if (selectedoptsmap && selectedoptsmap[optName] &&
                                               optionSelect.multivalued &&
@@ -51,6 +52,7 @@ used by _editOptions.gsp template
                                       }
                                       return [
                                               name               : optName,
+                                              label              : optLabel?:optName,
                                               required           : optionSelect.required,
                                               description        : optionSelect.description,
                                               descriptionHtml    : optionSelect.description?.decodeMarkdown(),
@@ -114,7 +116,7 @@ data for configuring remote option cascading/dependencies
                     <span data-bind="text: name"></span>
                 </span>
                 <span data-bind="if: !hasRemote()">
-                    <span data-bind="text: name"></span>
+                    <span data-bind="text: label"></span>
                 </span>
             </label>
 
@@ -147,7 +149,7 @@ data for configuring remote option cascading/dependencies
 
 
     <g:if test="${grails.util.Environment.current == grails.util.Environment.DEVELOPMENT}">
-        <div data-bind="foreach: {data: options(), as: 'option' }" class="text-muted">
+        <div data-bind="foreach: {data: options(), as: 'option' }" class="text-primary">
             <div><span data-bind="text: option.name"></span>=<span data-bind="text: option.value"></span></div>
         </div>
     </g:if>
@@ -211,7 +213,7 @@ data for configuring remote option cascading/dependencies
         </div>
 
         <div class="col-sm-10">
-            <p class="form-control-static text-muted"><g:message code="no.input.options.for.this.job"/></p>
+            <p class="form-control-static text-primary"><g:message code="no.input.options.for.this.job"/></p>
         </div>
     </div>
 </g:else>

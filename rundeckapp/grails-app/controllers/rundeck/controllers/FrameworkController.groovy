@@ -16,10 +16,16 @@
 
 package rundeck.controllers
 
+import com.dtolabs.rundeck.app.api.project.sources.Source
+import com.dtolabs.rundeck.app.api.project.sources.Resources
+import com.dtolabs.rundeck.app.api.project.sources.Sources
 import com.dtolabs.rundeck.app.support.PluginConfigParams
 import com.dtolabs.rundeck.app.support.StoreFilterCommand
 import com.dtolabs.rundeck.core.authorization.AuthContext
 import com.dtolabs.rundeck.core.authorization.Validation
+import com.dtolabs.rundeck.core.common.IFramework
+import com.dtolabs.rundeck.core.common.IProjectNodes
+import com.dtolabs.rundeck.core.common.IRundeckProject
 import com.dtolabs.rundeck.core.common.ProjectNodeSupport
 import com.dtolabs.rundeck.core.common.ProviderService
 import com.dtolabs.rundeck.core.execution.service.ExecutionServiceException
@@ -27,15 +33,21 @@ import com.dtolabs.rundeck.core.plugins.configuration.Describable
 import com.dtolabs.rundeck.core.resources.FileResourceModelSource
 import com.dtolabs.rundeck.core.resources.FileResourceModelSourceFactory
 import com.dtolabs.rundeck.core.resources.ResourceModelSourceException
+import com.dtolabs.rundeck.core.resources.format.ResourceFormatParser
 import com.dtolabs.rundeck.core.utils.NodeSet
 import com.dtolabs.rundeck.core.utils.OptsUtil
 import com.dtolabs.shared.resources.ResourceXMLGenerator
 
 import grails.converters.JSON
 import grails.converters.XML
+import grails.web.servlet.mvc.GrailsParameterMap
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
+import org.springframework.http.MediaType
+import org.springframework.util.InvalidMimeTypeException
+import org.springframework.util.MimeTypeUtils
 import rundeck.Execution
+import rundeck.Project
 import rundeck.ScheduledExecution
 import rundeck.services.ApiService
 import rundeck.services.AuthorizationService
@@ -57,7 +69,6 @@ import com.dtolabs.rundeck.core.resources.format.ResourceFormatGeneratorExceptio
 import com.dtolabs.rundeck.core.execution.service.NodeExecutorService
 import com.dtolabs.rundeck.core.execution.service.FileCopierService
 
-import org.codehaus.groovy.grails.web.servlet.mvc.GrailsParameterMap
 import com.dtolabs.client.utils.Constants
 import com.dtolabs.rundeck.server.authorization.AuthConstants
 import com.dtolabs.rundeck.core.common.NodeSetImpl
@@ -69,7 +80,7 @@ import rundeck.NodeFilter
 import rundeck.services.ExecutionService
 import rundeck.services.FrameworkService
 import rundeck.services.UserService
-import rundeck.filters.ApiRequestFilters
+import com.dtolabs.rundeck.app.api.ApiVersions
 
 class FrameworkController extends ControllerBase implements ApplicationContextAware {
     FrameworkService frameworkService
@@ -90,14 +101,14 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
     // the delete, save and update actions only
     // accept POST requests
     def static allowedMethods = [
-            apiProjectResources      : ['POST'],
-            apiSystemAcls            : ['GET', 'PUT', 'POST', 'DELETE'],
-            createProjectPost        : 'POST',
-            deleteNodeFilter         : 'POST',
-            saveProject              : 'POST',
-            storeNodeFilter          : 'POST',
-            saveProjectNodeSources   : 'POST',
-            saveProjectNodeSourceFile: 'POST',
+        apiSourceWriteContent    : 'POST',
+        apiSystemAcls            : ['GET', 'PUT', 'POST', 'DELETE'],
+        createProjectPost        : 'POST',
+        deleteNodeFilter         : 'POST',
+        saveProject              : 'POST',
+        storeNodeFilter          : 'POST',
+        saveProjectNodeSources   : 'POST',
+        saveProjectNodeSourceFile: 'POST',
     ]
 
     def index = {
@@ -210,8 +221,8 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         if (params.fromExecId || params.retryFailedExecId) {
             Execution e = Execution.get(params.fromExecId ?: params.retryFailedExecId)
             if (e && unauthorizedResponse(
-                    frameworkService.authorizeProjectExecutionAll(authContext, e, [AuthConstants.ACTION_READ]),
-                    AuthConstants.ACTION_READ, 'Execution', params.fromExecId ?: params.retryFailedExecId)) {
+                    frameworkService.authorizeProjectExecutionAny(authContext, e, [AuthConstants.ACTION_READ,AuthConstants.ACTION_VIEW]),
+                    AuthConstants.ACTION_VIEW, 'Execution', params.fromExecId ?: params.retryFailedExecId)) {
                 return
             }
 
@@ -327,7 +338,8 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
 //        allcount=nodes1.nodes.size()
         if(params.localNodeOnly){
             nodeset=new NodeSetImpl()
-            nodeset.putNode(nodes1.getNode(framework.getFrameworkNodeName()))
+            def localnode = nodes1.getNode(framework.getFrameworkNodeName())
+            if(localnode) nodeset.putNode(localnode)
         }
         else if (nset && !(nset.include.blank && nset.exclude.blank)){
             //match using nodeset unless all filters are blank
@@ -694,7 +706,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
                 ffilter.delete(flush:true)
             }
             render(contentType: 'application/json'){
-                success=true
+                success true
             }
         }.invalidToken{
             return apiService.renderErrorFormat(response, [
@@ -732,6 +744,9 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         def Properties projProps = new Properties()
         if(params.description) {
             projProps['project.description'] = params.description
+        }
+        if(params.label) {
+            projProps['project.label'] = params.label
         }
         def errors = []
         def configs
@@ -827,6 +842,8 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         return render(view:'createProject',
                 model: [
                 newproject: params.newproject,
+                projectDescription: params.description,
+                projectLabel: params.label,
                 projectNameError: projectNameError,
                 resourcesUrl: resourcesUrl,
                 resourceModelConfigDescriptions: descriptions,
@@ -925,12 +942,12 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
 
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                         authContext,
                         frameworkService.authResourceForProject(project),
-                        [AuthConstants.ACTION_ADMIN]
+                        [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
                 ),
-                AuthConstants.ACTION_ADMIN, 'Project',project
+                AuthConstants.ACTION_CONFIGURE, 'Project',project
         )) {
             return
         }
@@ -1115,9 +1132,9 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
 
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(authContext,
-                        frameworkService.authResourceForProject(project), [AuthConstants.ACTION_ADMIN]),
-                AuthConstants.ACTION_ADMIN, 'Project',project)) {
+                frameworkService.authorizeApplicationResourceAny(authContext,
+                        frameworkService.authResourceForProject(project), [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]),
+                AuthConstants.ACTION_CONFIGURE, 'Project',project)) {
             return
         }
 
@@ -1140,7 +1157,11 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
             }else{
                 projProps['project.description']=''
             }
-
+            if(params.label){
+                projProps['project.label']=params.label
+            }else{
+                projProps['project.label']=''
+            }
 
 
             def Set<String> removePrefixes=[]
@@ -1381,12 +1402,12 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
 
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                         authContext,
                         frameworkService.authResourceForProject(project),
-                        [AuthConstants.ACTION_ADMIN]
+                        [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
                 ),
-                AuthConstants.ACTION_ADMIN, 'Project', project
+                AuthConstants.ACTION_CONFIGURE, 'Project', project
         )) {
             return
         }
@@ -1507,7 +1528,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
 
         def project = params.project
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                         frameworkService.getAuthContextForSubject(session.subject),
                         frameworkService.authResourceForProject(project),
                         [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
@@ -1568,7 +1589,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
 
 
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                         frameworkService.getAuthContextForSubject(session.subject),
                         frameworkService.authResourceForProject(project),
                         [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
@@ -1634,12 +1655,12 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         def index = params.index.toInteger()
 
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                         frameworkService.getAuthContextForSubject(session.subject),
                         frameworkService.authResourceForProject(project),
-                        [AuthConstants.ACTION_ADMIN]
+                        [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
                 ),
-                AuthConstants.ACTION_ADMIN, 'Project', project
+                AuthConstants.ACTION_CONFIGURE, 'Project', project
         )) {
             return
         }
@@ -1687,7 +1708,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         def desc = frameworkService.rundeckFramework.getResourceModelSourceService().
                 listDescriptions()?.find { it.name == providerType }
         return render(
-                view: 'editProjectResourceFile',
+                view: 'editProjectNodeSourceFile',
                 model: [
                         project     : project,
                         index       : index,
@@ -1710,7 +1731,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         def project = params.project
 
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                         frameworkService.getAuthContextForSubject(session.subject),
                         frameworkService.authResourceForProject(project),
                         [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
@@ -1721,6 +1742,10 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         }
 
         final def fwkProject = frameworkService.getFrameworkProject(project)
+        final def projectDescription = Project.withNewSession {
+            Project.findByName(project)?.description
+        }
+
         final def (resourceDescs, execDesc, filecopyDesc) = frameworkService.listDescriptions()
 
         //get list of node executor, and file copier services
@@ -1747,10 +1772,10 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
                 'extraConfig.',
                 fwkProject.projectProperties
         )
-
         [
             project: project,
-            projectDescription:fwkProject.getProjectProperties().get("project.description"),
+            projectDescription:projectDescription?:fwkProject.getProjectProperties().get("project.description"),
+            projectLabel:fwkProject.getProjectProperties().get("project.label"),
             nodeexecconfig:nodeConfig,
             fcopyconfig:filecopyConfig,
             defaultNodeExec: defaultNodeExec,
@@ -1772,7 +1797,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         def project = params.project
 
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                         frameworkService.getAuthContextForSubject(session.subject),
                         frameworkService.authResourceForProject(project),
                         [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
@@ -1827,11 +1852,11 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         def project = params.project
 
         if (unauthorizedResponse(
-                frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                         frameworkService.getAuthContextForSubject(session.subject),
                         frameworkService.authResourceForProject(project),
-                        [AuthConstants.ACTION_ADMIN]),
-                AuthConstants.ACTION_ADMIN, 'Project', project)) {
+                        [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]),
+                AuthConstants.ACTION_CONFIGURE, 'Project', project)) {
             return
         }
 
@@ -1865,11 +1890,11 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         def project = params.project
 
         if (unauthorizedResponse(
-            frameworkService.authorizeApplicationResourceAll(
+                frameworkService.authorizeApplicationResourceAny(
                 frameworkService.getAuthContextForSubject(session.subject),
                 frameworkService.authResourceForProject(project),
-                [AuthConstants.ACTION_ADMIN]),
-            AuthConstants.ACTION_ADMIN, 'Project', project)) {
+                        [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]),
+                AuthConstants.ACTION_CONFIGURE, 'Project', project)) {
             return
         }
 
@@ -2167,6 +2192,10 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
             projects = frameworkService.projectNames(authContext)
             session.frameworkProjects=projects
         }
+        if(!session.frameworkLabels){
+            def flabels = frameworkService.projectLabels(authContext)
+            session.frameworkLabels = flabels
+        }
         [projects:projects,project:params.project] + (params.page?[selectParams:[page:params.page]]:[:])
     }
     /**
@@ -2209,12 +2238,344 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         return result
     }
 
+    def apiSourcesList() {
+        if (!apiService.requireVersion(request, response, ApiVersions.V23)) {
+            return
+        }
 
+        if (!apiService.requireParameters(params, response, ['project'])) {
+            return
+        }
+        def project = params.project
+        if (!apiService.requireExists(
+            response,
+            frameworkService.existsFrameworkProject(project),
+            ['project', project]
+        )) {
+            return
+        }
+        AuthContext authContext = frameworkService.getAuthContextForSubjectAndProject(session.subject, project)
+        if (!apiService.requireAuthorized(
+            frameworkService.authorizeApplicationResourceAll(
+                authContext,
+                frameworkService.authResourceForProject(project),
+                [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
+            ),
+            response,
+            [AuthConstants.ACTION_CONFIGURE, 'Project', project]
+        )) {
+            return
+        }
+        final IRundeckProject fwkProject = frameworkService.getFrameworkProject(project)
+        final IProjectNodes projectNodes = fwkProject.projectNodes
+        final fmk = frameworkService.getRundeckFramework()
+        final resourceDescs = fmk.getResourceModelSourceService().listDescriptions()
+
+        //get list of model source configes
+        final resourceConfig = projectNodes.listResourceModelConfigurations()
+        final writeableModelSourcesMap = projectNodes.writeableResourceModelSources.collectEntries { [it.index, it] }
+
+        def parseExceptions = fwkProject.projectNodes.getResourceModelSourceExceptionsMap()
+
+        int index = 0
+        respond(
+            new Sources(
+                project,
+                resourceConfig.collect { Map config ->
+                    index++
+                    def ident = index + '.source'
+                    def writeableSource = writeableModelSourcesMap[index]
+                    new Source(
+                        index: index,
+                        type: config.type,
+                        errors: parseExceptions[ident]?.message ?: null,
+                        resources: new Resources(
+                            writeable: writeableSource ? true : false,
+                            description: writeableSource?.writeableSource?.sourceDescription,
+                            empty: writeableSource ? !writeableSource.writeableSource.hasData() : null,
+                            href: createLink(
+                                absolute: true,
+                                mapping: 'apiProjectSourceResources',
+                                params: [
+                                    api_version: ApiVersions.API_CURRENT_VERSION,
+                                    project    : project,
+                                    index      : index
+                                ]
+                            )
+                        )
+                    )
+                }
+            ),
+
+            [formats: ['json', 'xml']]
+        )
+    }
+
+    def apiSourceWriteContent() {
+        if (!apiService.requireVersion(request, response, ApiVersions.V23)) {
+            return
+        }
+
+        if (!apiService.requireParameters(params, response, ['project','index'])) {
+            return
+        }
+        def project = params.project
+        if (!apiService.requireExists(response, frameworkService.existsFrameworkProject(project), ['project', project])) {
+            return
+        }
+        final IRundeckProject fwkProject = frameworkService.getFrameworkProject(project)
+        AuthContext authContext = frameworkService.getAuthContextForSubjectAndProject(session.subject, project)
+        if (!apiService.requireAuthorized(
+            frameworkService.authorizeApplicationResourceAll(
+                authContext,
+                frameworkService.authResourceForProject(project),
+                [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
+            ),
+            response,
+            [AuthConstants.ACTION_CONFIGURE, 'Project', project]
+        )) {
+            return
+        }
+
+        final contentType = request.contentType
+
+        def index = params.int('index')
+        if (!apiService.requireExists(response, index, ['source index', params.index])) {
+            return
+        }
+        def projectNodes = fwkProject.projectNodes
+        final writableSources = projectNodes.writeableResourceModelSources
+        final source = writableSources.find { it.index == index }
+
+        if (!source) {
+            return apiService.renderErrorFormat(
+                response,
+                [status: HttpServletResponse.SC_METHOD_NOT_ALLOWED,
+                 code  : 'api.error.invalid.request',
+                 args  : ["POST to readonly project source index $index"]]
+            )
+        }
+        def format = source.writeableSource.syntaxMimeType
+        def inputStream = request.getInputStream()
+        //validate
+        def framework = frameworkService.rundeckFramework
+        if (format != contentType) {
+            //attempt to convert to expected format
+            ResourceFormatParser parser
+            INodeSet nodes
+
+            try {
+                parser = framework.resourceFormatParserService.getParserForMIMEType(contentType)
+                nodes = parser.parseDocument(request.getInputStream())
+            } catch (Exception e) {
+                log.error("Cannot parse input data for format: $contentType", e)
+                apiService.renderErrorFormat(
+                    response,
+                    [status: HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+                     code  : 'api.error.resource.format.unsupported',
+                     args  : [contentType]]
+                )
+                return
+            }
+            try {
+                def generator = framework.resourceFormatGeneratorService.getGeneratorForMIMEType(format)
+                ByteArrayOutputStream baos = new ByteArrayOutputStream()
+                generator.generateDocument(nodes, baos)
+                inputStream = new ByteArrayInputStream(baos.toByteArray())
+            } catch (ResourceFormatGeneratorException | IOException e) {
+                log.error("Cannot generate resource model data for format: $format", e)
+                apiService.renderErrorFormat(
+                    response,
+                    [status: HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                     code  : 'api.error.resource.format.unsupported',
+                     args  : [contentType]]
+                )
+                return
+            } catch (Exception e) {
+                log.error("Cannot generate resource model data for format: $format", e)
+                apiService.renderErrorFormat(
+                    response,
+                    [status: HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                     code  : 'api.error.unknown',
+                    ]
+                )
+                return
+            }
+        }
+
+        long size = -1
+        def error = null
+        try {
+            size = source.writeableSource.writeData(inputStream)
+        } catch (ResourceModelSourceException exc) {
+            log.error(exc)
+            exc.printStackTrace()
+            error = exc
+        }
+        if (error) {
+            apiService.renderErrorFormat(
+                response,
+                [status: HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                 code  : 'api.error.resource.write.failure',
+                 args  : [error.message]]
+            )
+            return
+        }
+        def readsource = projectNodes.resourceModelSources.find { it.index == index }
+        if (!apiService.requireExists(response, readsource, ['source index', params.index])) {
+            return
+        }
+
+        return apiRenderNodeResult(readsource.source.nodes, framework, params.project)
+    }
+
+    def apiSourceGet() {
+        if (!apiService.requireVersion(request, response, ApiVersions.V23)) {
+            return
+        }
+
+        if (!apiService.requireParameters(params, response, ['project', 'index'])) {
+            return
+        }
+        def project = params.project
+        if (!apiService.requireExists(
+            response,
+            frameworkService.existsFrameworkProject(project),
+            ['project', project]
+        )) {
+            return
+        }
+        AuthContext authContext = frameworkService.getAuthContextForSubjectAndProject(session.subject, project)
+        if (!apiService.requireAuthorized(
+            frameworkService.authorizeApplicationResourceAll(
+                authContext,
+                frameworkService.authResourceForProject(project),
+                [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
+            ),
+            response,
+            [AuthConstants.ACTION_CONFIGURE, 'Project', project]
+        )) {
+            return
+        }
+        def index = params.int('index')
+        if (!apiService.requireExists(response, index, ['source index', params.index])) {
+            return
+        }
+        final IRundeckProject fwkProject = frameworkService.getFrameworkProject(project)
+        final IProjectNodes projectNodes = fwkProject.projectNodes
+        final fmk = frameworkService.getRundeckFramework()
+        final resourceDescs = fmk.getResourceModelSourceService().listDescriptions()
+
+        //get list of model source configes
+        final resourceConfig = projectNodes.listResourceModelConfigurations()
+        if (resourceConfig.size() < index || index < 1) {
+            apiService.renderErrorFormat(
+                response,
+                [status: HttpServletResponse.SC_NOT_FOUND, code: 'api.error.item.doesnotexist', args: ['source index', params.index]]
+            )
+            return
+        }
+        def parseExceptions = fwkProject.projectNodes.getResourceModelSourceExceptionsMap()
+        def config = resourceConfig[index - 1]
+        def writeableSource = projectNodes.writeableResourceModelSources.find { it.index == index }
+        def errors = parseExceptions[index + '.source']
+
+        respondProjectSource(config.type, writeableSource, project, index, errors?.message)
+    }
+
+    public void respondProjectSource(
+        String type,
+        IProjectNodes.WriteableProjectNodes writeableSource,
+        project,
+        index,
+        String errors
+    ) {
+        Resources sourceContent = new Resources(
+            writeable: writeableSource ? true : false,
+            href: createLink(
+                absolute: true,
+                mapping: 'apiProjectSourceResources',
+                params: [
+                    api_version: ApiVersions.API_CURRENT_VERSION,
+                    project    : project,
+                    index      : index
+                ]
+            )
+        )
+        if (writeableSource) {
+            sourceContent.description = writeableSource.writeableSource.sourceDescription
+            sourceContent.empty = !writeableSource.writeableSource.hasData()
+        }
+
+        respond(
+            new Source(
+                project: project,
+                index: index,
+                type: type,
+                errors: errors,
+                resources: sourceContent
+            ),
+            [formats: ['json', 'xml']]
+        )
+    }
+
+    def apiSourceGetContent() {
+        if (!apiService.requireVersion(request, response, ApiVersions.V23)) {
+            return
+        }
+
+        if (!apiService.requireParameters(params, response, ['project', 'index'])) {
+            return
+        }
+        def project = params.project
+        if (!apiService.requireExists(
+            response,
+            frameworkService.existsFrameworkProject(project),
+            ['project', project]
+        )) {
+            return
+        }
+        AuthContext authContext = frameworkService.getAuthContextForSubjectAndProject(session.subject, project)
+        if (!apiService.requireAuthorized(
+            frameworkService.authorizeApplicationResourceAll(
+                authContext,
+                frameworkService.authResourceForProject(project),
+                [AuthConstants.ACTION_CONFIGURE, AuthConstants.ACTION_ADMIN]
+            ),
+            response,
+            [AuthConstants.ACTION_CONFIGURE, 'Project', project]
+        )) {
+            return
+        }
+        def index = params.int('index')
+        if (!apiService.requireExists(response, index, ['source index', params.index])) {
+            return
+        }
+        final IRundeckProject fwkProject = frameworkService.getFrameworkProject(project)
+        final IProjectNodes projectNodes = fwkProject.projectNodes
+        final fmk = frameworkService.getRundeckFramework()
+
+        //get list of model source configes
+        final resourceConfig = projectNodes.listResourceModelConfigurations()
+        if (resourceConfig.size() < index || index < 1) {
+            apiService.renderErrorFormat(
+                response,
+                [status: HttpServletResponse.SC_NOT_FOUND, code: 'api.error.item.doesnotexist', args: ['source index', params.index]]
+            )
+            return
+        }
+        def source = projectNodes.resourceModelSources.find { it.index == index }
+        if (!apiService.requireExists(response, source, ['source index', params.index])) {
+            return
+        }
+
+        return apiRenderNodeResult(source.source.nodes, fmk, params.project)
+    }
     /**
      * API: /api/14/project/PROJECT/resource/NAME, version 14
      */
     def apiResourcev14 () {
-        if(!apiService.requireVersion(request,response,ApiRequestFilters.V14)){
+        if(!apiService.requireVersion(request,response,ApiVersions.V14)){
             return
         }
         return apiResource()
@@ -2226,7 +2587,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         if (!apiService.requireApi(request, response)) {
             return
         }
-        Framework framework = frameworkService.getRundeckFramework()
+        IFramework framework = frameworkService.getRundeckFramework()
         if(!params.project){
             return apiService.renderErrorXml(response, [status: HttpServletResponse.SC_BAD_REQUEST,
                     code: 'api.error.parameter.required', args: ['project']])
@@ -2267,7 +2628,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
      * API: /api/2/project/NAME/resources, version 2
      */
     def apiResourcesv2(ExtNodeFilters query) {
-        if (!apiService.requireVersion(request, response,ApiRequestFilters.V2)) {
+        if (!apiService.requireVersion(request, response,ApiVersions.V2)) {
             return
         }
         return apiResources(query)
@@ -2283,7 +2644,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
             return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
                     code: 'api.error.invalid.request', args: [query.errors.allErrors.collect { g.message(error: it) }.join("; ")]])
         }
-        Framework framework = frameworkService.getRundeckFramework()
+        IFramework framework = frameworkService.getRundeckFramework()
         if(!params.project){
             return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_BAD_REQUEST,
                     code: 'api.error.parameter.required', args: ['project']])
@@ -2307,7 +2668,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
                 response.format && !(response.format in ['all','html','xml','yaml'])) {
             //expected another content type
             def reqformat = params.format ?: response.format
-            if (!apiService.requireVersion(request, response,ApiRequestFilters.V3)) {
+            if (!apiService.requireVersion(request, response,ApiVersions.V3)) {
                 return
             }
         }
@@ -2335,93 +2696,110 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
         )
         return apiRenderNodeResult(readnodes, framework, params.project)
     }
-    protected String apiRenderNodeResult(INodeSet nodes, Framework framework, String project) {
-        if (params.format && !(params.format in ['xml', 'yaml']) ||
-                response.format &&
-                !(response.format in ['all', 'html', 'xml', 'yaml'])) {
-            //expected another content type
-            if (!apiService.requireVersion(request, response, ApiRequestFilters.V3)) {
-                return
+
+    def handleInvalidMimeType(InvalidMimeTypeException e) {
+        return apiService.renderErrorFormat(
+            response,
+            [
+                status: HttpServletResponse.SC_BAD_REQUEST,
+                code  : 'api.error.invalid.request',
+                args  : [e.message]
+            ]
+        )
+    }
+    static final Map<String, String> resourceFormatBuiltinTypes = [
+        xml : 'resourcexml',
+        json: 'resourcejson',
+        yaml: 'resourceyaml',
+    ]
+
+    protected def apiRenderNodeResult(INodeSet nodes, IFramework framework, String project) {
+        def reqformat = params.format ?: response.format
+        if (reqformat in ['all', 'html']) {
+            if (request.api_version < ApiVersions.V23) {
+                reqformat = 'xml'
+            } else {
+                reqformat = 'json'
             }
-            def reqformat = params.format ?: response.format
-            //render specified format
-            final service = framework.getResourceFormatGeneratorService()
-            ByteArrayOutputStream baos = new ByteArrayOutputStream()
-            def generator
-            [params.format,response.format].each{
-                if(!generator && it){
-                    try{
-                        generator = service.getGeneratorForFormat(it)
-                    }catch (UnsupportedFormatException e) {
-                        log.debug("could not get generator for format: ${it}: ${e.message}",e)
-                    }
+        }
+        reqformat = resourceFormatBuiltinTypes[reqformat] ?: reqformat
+        //render specified format
+        final service = framework.getResourceFormatGeneratorService()
+        ByteArrayOutputStream baos = new ByteArrayOutputStream()
+        def generator
+
+        [params.format, response.format, reqformat].each {
+            if (!generator && it) {
+                try {
+                    generator = service.getGeneratorForFormat(it)
+                } catch (UnsupportedFormatException e) {
+                    log.debug("could not get generator for format: ${it}: ${e.message}", e)
                 }
             }
-            if(!generator){
-                //try accept header
-                try{
-                    generator = service.getGeneratorForMIMEType(request.getHeader("accept"))
-                }catch (UnsupportedFormatException e) {
-                    log.debug("could not get generator for mime type: ${request.getHeader("accept")}: ${e.message}",e)
-                }
-            }
-            if(!generator){
-                return apiService.renderErrorFormat(
-                        response,
-                        [
-                                status: HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                                code  : 'api.error.resource.format.unsupported',
-                                args: [reqformat]
-                        ]
-                )
-            }
-
-
+        }
+        if (!generator) {
+            //try accept header
+            List<MediaType> mimes = []
             try {
-                generator.generateDocument(nodes, baos)
-            } catch (ResourceFormatGeneratorException e) {
-                return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                                                               code  : 'api.error.resource.format.generator', args: [e.message]]
-                )
-            } catch (IOException e) {
-                return apiService.renderErrorFormat(response, [status: HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                                                               code  : 'api.error.resource.format.generator', args: [e.message]]
+                mimes = MediaType.parseMediaTypes(request.getHeader('accept'))
+                MediaType.sortBySpecificityAndQuality(mimes)
+            } catch (RuntimeException e) {
+                return apiService.renderErrorFormat(
+                    response,
+                    [
+                        status: HttpServletResponse.SC_BAD_REQUEST,
+                        code  : 'api.error.invalid.request',
+                        args  : [e.message]
+                    ]
                 )
             }
-            final types = generator.getMIMETypes() as List
-            return render(contentType: types[0], encoding: "UTF-8", text: baos.toString())
-        }
-        withFormat {
-            xml {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                final NodesFileGenerator generator = new ResourceXMLGenerator(baos)
-                nodes.nodes.each { INodeEntry node ->
-                    generator.addNode(node)
-                }
-                generator.generate()
-                return render(contentType: "text/xml", encoding: "UTF-8", text: baos.toString())
-            }
-            yaml {
-                if (nodes.nodes.size() > 0) {
-                    StringWriter sw = new StringWriter()
-                    final NodesFileGenerator generator = new NodesYamlGenerator(sw)
-                    nodes.nodes.each { INodeEntry node ->
-                        generator.addNode(node)
-                    }
-                    generator.generate()
-                    return render(contentType: "text/yaml", encoding: "UTF-8", text: sw.toString())
-                } else {
-                    return render(contentType: "text/yaml", encoding: "UTF-8", text: "# 0 results for query\n")
+            for (MediaType mime : mimes) {
+                try {
+                    generator = service.getGeneratorForMIMEType(mime.toString())
+                    break
+                } catch (UnsupportedFormatException e) {
+                    log.debug(
+                        "could not get generator for mime type: ${request.getHeader("accept")}: ${e.message}",
+                        e
+                    )
                 }
             }
         }
+        if (!generator) {
+            return apiService.renderErrorFormat(
+                response,
+                [
+                    status: HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+                    code  : 'api.error.resource.format.unsupported',
+                    args  : [reqformat]
+                ]
+            )
+        }
+
+
+        try {
+            generator.generateDocument(nodes, baos)
+        } catch (ResourceFormatGeneratorException e) {
+            return apiService.renderErrorFormat(
+                response, [status: HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                           code  : 'api.error.resource.format.generator', args: [e.message]]
+            )
+        } catch (IOException e) {
+            return apiService.renderErrorFormat(
+                response, [status: HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                           code  : 'api.error.resource.format.generator', args: [e.message]]
+            )
+        }
+        final types = generator.getMIMETypes() as List
+        return render(contentType: types[0], encoding: "UTF-8", text: baos.toString())
+
     }
 
     /**
      * /api/14/system/acl/* endpoint
      */
     def apiSystemAcls(){
-        if (!apiService.requireVersion(request, response, ApiRequestFilters.V14)) {
+        if (!apiService.requireVersion(request, response, ApiVersions.V14)) {
             return
         }
         AuthContext authContext = frameworkService.getAuthContextForSubject(session.subject)
@@ -2470,7 +2848,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
     }
 
     private def renderAclHref(String path) {
-        createLink(absolute: true, uri: "/api/${ApiRequestFilters.API_CURRENT_VERSION}/system/acl/$path")
+        createLink(absolute: true, uri: "/api/${ApiVersions.API_CURRENT_VERSION}/system/acl/$path")
     }
     private def apiSystemAclsPutResource(String storagePath, boolean create) {
         def respFormat = apiService.extractResponseFormat(request, response, ['xml','json','yaml','text'],request.format)
@@ -2541,9 +2919,7 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
             response.status = HttpServletResponse.SC_BAD_REQUEST
             return withFormat{
                 def j={
-                    render(contentType:'application/json'){
-                        apiService.renderJsonAclpolicyValidation(validation,delegate)
-                    }
+                    render apiService.renderJsonAclpolicyValidation(validation) as JSON
                 }
                 xml{
                     render(contentType: 'application/xml'){
@@ -2568,14 +2944,13 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
             withFormat{
                 xml{
                     render(contentType: 'application/xml'){
-                        apiService.renderWrappedFileContents(baos.toString(),respFormat,delegate)
+                        apiService.renderWrappedFileContentsXml(baos.toString(),respFormat,delegate)
                     }
 
                 }
                 def j={
-                    render(contentType:'application/json'){
-                        apiService.renderWrappedFileContents(baos.toString(),respFormat,delegate)
-                    }
+                    def content = [contents: baos.toString()]
+                    render content as JSON
                 }
                 json j
                 '*' j
@@ -2603,13 +2978,12 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
                 configStorageService.loadFileResource(projectFilePath,baos)
                 withFormat{
                     def j={
-                        render(contentType:'application/json'){
-                            apiService.renderWrappedFileContents(baos.toString(),respFormat,delegate)
-                        }
+                        def content = [contents:baos.toString()]
+                        render content as JSON
                     }
                     xml{
                         render(contentType: 'application/xml'){
-                            apiService.renderWrappedFileContents(baos.toString(),respFormat,delegate)
+                            apiService.renderWrappedFileContentsXml(baos.toString(),respFormat,delegate)
                         }
 
                     }
@@ -2634,15 +3008,12 @@ class FrameworkController extends ControllerBase implements ApplicationContextAw
 
                 }
                 def j ={
-                    render(contentType:'application/json') {
-                        apiService.jsonRenderDirlist(
+                    render apiService.jsonRenderDirlist(
                                 projectFilePath,
                                 { String p -> apiService.pathRmPrefix(p, rmprefix) },
                                 { String p -> renderAclHref(apiService.pathRmPrefix(p, rmprefix)) },
-                                list,
-                                delegate
-                        )
-                    }
+                                list
+                        ) as JSON
                 }
                 json j
                 '*' j

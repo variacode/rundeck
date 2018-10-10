@@ -41,6 +41,7 @@ import rundeck.BaseReport
 import rundeck.ExecReport
 import rundeck.Execution
 import rundeck.JobFileRecord
+import rundeck.Project
 import rundeck.ScheduledExecution
 import rundeck.codecs.JobsXMLCodec
 import rundeck.controllers.JobXMLException
@@ -678,7 +679,7 @@ class ProjectService implements InitializingBean, ExecutionFileProducer{
 
         def Manifest manifest = new Manifest()
         manifest.mainAttributes.put(Attributes.Name.MANIFEST_VERSION,'1.0')
-        manifest.mainAttributes.putValue('Rundeck-Application-Version', grailsApplication.metadata['app.version'])
+        manifest.mainAttributes.putValue('Rundeck-Application-Version', grailsApplication.metadata.getApplicationVersion())
         manifest.mainAttributes.putValue('Rundeck-Archive-Format-Version', '1.0')
         manifest.mainAttributes.putValue('Rundeck-Archive-Project-Name', project.name)
         manifest.mainAttributes.putValue('Rundeck-Archive-Export-Date', sdf.format(new Date()))

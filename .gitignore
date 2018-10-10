@@ -11,6 +11,9 @@
 /bin/
 **/build
 **/*/build
+**/out
+**/*/out
+/artifacts
 /cobertura.ser
 /gradle-cache
 /rundeckapp/stacktrace.log
@@ -44,3 +47,6 @@ rundeckapp/env.bash
 /grails/
 /out/
 /scratch/
+rundeckapp/out
+rundeckapp/rundeck-runtime
+/rundeckapp/grails-app/assets/node_modules

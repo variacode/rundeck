@@ -1,5 +1,5 @@
 %{--
-  - Copyright 2017 Rundeck, Inc. (http://rundeck.com)
+  - Copyright 2018 Rundeck, Inc. (http://rundeck.com)
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@
     <meta name="projtabtitle" content="${message(code: 'create.system.acl.policy')}"/>
     <title><g:message code="create.system.acl.policy" /></title>
 
-    <g:javascript library="prototype/effects"/>
+    <asset:javascript src="prototype/effects"/>
     <asset:javascript src="leavePageConfirm.js"/>
     <g:jsMessages code="page.unsaved.changes"/>
     <g:javascript>
@@ -51,40 +51,40 @@
 </head>
 
 <body>
-
-<div class="row">
-    <div class="col-sm-12">
-        <g:render template="/common/messages"/>
-    </div>
-</div>
-
-<div class="row">
-    <g:form action="saveSystemAclFile" method="post"
-            params="${[fileType: fileType]}"
-            useToken="true"
-            class="form-horizontal">
-        <div class="col-sm-10 col-sm-offset-1">
-            <g:render template="editAclFile" model="${[
-                    backHref                : g.createLink(
-                            controller: 'menu',
-                            action: 'acls',
-                            params: [:]
-                    ),
-                    title                   : g.message(code: 'create.system.acl.policy'),
-                    primaryLabel            : g.message(code: 'system.acl.location.prompt'),
-                    primaryValue            : g.message(code: 'system.acl.location.type.'+fileType+'.label'),
-                    fileText                : fileText,
-                    validationDocumentPrefix: file,
-                    createField             : 'name',
-                    createFieldLabel        : g.message(code: 'policy.name.label.prompt'),
-                    createFieldValue        : name,
-                    createFieldHelpCode     : 'policy.name.description',
-                    input                   : input
-            ]}"/>
+  <div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-12">
+            <g:render template="/common/messages"/>
         </div>
-    </g:form>
-</div>
+    </div>
+    <div class="row">
+        <g:form action="saveSystemAclFile" method="post"
+                params="${[fileType: fileType]}"
+                useToken="true"
+                class="form-horizontal">
+            <div class="col-xs-12">
+                <g:render template="editAclFile" model="${[
+                        backHref                : g.createLink(
+                                controller: 'menu',
+                                action: 'acls',
+                                params: [:]
+                        ),
+                        title                   : g.message(code: 'create.system.acl.policy'),
+                        primaryLabel            : g.message(code: 'system.acl.location.prompt'),
+                        primaryValue            : g.message(code: 'system.acl.location.type.'+fileType+'.label'),
+                        fileText                : fileText,
+                        validationDocumentPrefix: file,
+                        createField             : 'name',
+                        createFieldLabel        : g.message(code: 'policy.name.label.prompt'),
+                        createFieldValue        : name,
+                        createFieldHelpCode     : 'policy.name.description',
+                        input                   : input
+                ]}"/>
+            </div>
+        </g:form>
+    </div>
+  </div>
 
-<!--[if (gt IE 8)|!(IE)]><!--> <g:javascript library="ace/ace"/><!--<![endif]-->
+<!--[if (gt IE 8)|!(IE)]><!--> <asset:javascript src="ace-bundle.js"/><!--<![endif]-->
 </body>
 </html>
