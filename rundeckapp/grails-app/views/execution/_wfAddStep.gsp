@@ -13,6 +13,7 @@
   - See the License for the specific language governing permissions and
   - limitations under the License.
   --}%
+<%@ page import="grails.converters.JSON" %>
 <div class="panel-heading">
     <span class="h3 ">
         <g:message code="${addMessage}"/>
@@ -27,8 +28,38 @@
         <div class="h4"><g:message code="${chooseMessage}"/></div>
     </div>
 </div>
-<div class="row row-space">
+<g:set var="rkey" value="${g.rkey()}"/>
+<div id="addStep_${rkey}" class="row row-space">
 <div class="col-sm-12">
+    <div class="form-group">
+
+        <label class="col-sm-2 control-label" for="stepFilter${enc(attr: rkey)}">
+            <g:message code="step.plugins.filter.prompt"/>
+        </label>
+
+        <div class="col-sm-10">
+            <g:set var="filtvalue" value="${item?.nodeFilter}"/>
+
+            <span class="input-group nodefilters">
+                <g:render template="/framework/stepPluginFilterInputGroup"
+                          model="[filterFieldName: 'nodeFilter',
+                                  filterFieldId:'nodeFilterField'+rkey,
+                                  queryFieldHelpId:'nodeFilterQueryFieldHelp'+rkey,
+                                  queryFieldPlaceholderText: g.message(code:'enter.a.step.filter.override'),
+                                  filterset: '',
+                                  filtvalue: filtvalue,
+                                  nodeStepDescriptions: nodeStepDescriptions,
+                                  filterName: null]"/>
+            </span>
+
+            <div class=" collapse" id="nodeFilterQueryFieldHelp${enc(attr: rkey)}">
+                <div class="help-block">
+                    <g:render template="/common/stepPluginsfilterStringHelp"/>
+                </div>
+            </div>
+
+        </div>
+    </div>
     <ul class="nav nav-tabs" >
         <li class="active node_step_section">
             <a href="#addnodestep" data-toggle="tab">
@@ -75,8 +106,9 @@
                     </div>
                     <g:each in="${nodeStepDescriptions.sort{a,b->a.name<=>b.name}}" var="typedesc">
 
-                        <a  class="list-group-item textbtn  add_node_step_type" data-node-step-type="${enc(attr:typedesc.name)}"
-                            href="#">
+                        <a data-bind="visible: isVisible('${(typedesc.name)}')"
+                           class="list-group-item textbtn  add_node_step_type"
+                           data-node-step-type="${enc(attr:typedesc.name)}" href="#">
                             <stepplugin:pluginIcon service="WorkflowNodeStep"
                                                    name="${typedesc.name}"
                                                    width="16px"
@@ -120,7 +152,9 @@
                         <g:plural for="${stepDescriptions}" code="workflow.step.plugin" />
                     </div>
                     <g:each in="${stepDescriptions.sort{a,b->a.name<=>b.name}}" var="typedesc">
-                        <a class="list-group-item textbtn  add_step_type" data-step-type="${enc(attr:typedesc.name)}" href="#">
+                        <a data-bind="visible: isVisible('${(typedesc.name)}')" class="list-group-item textbtn  add_step_type"
+                            data-step-type="${enc(attr: typedesc.name)}"
+                           href="#">
                             <stepplugin:pluginIcon service="WorkflowStep"
                                                    name="${typedesc.name}"
                                                    width="16px"
@@ -153,6 +187,34 @@
     </div>
 </div>
 </div>
+    <g:javascript>
+                fireWhenReady('addStep_${enc(js: rkey)}',function(){
+
+                    function parseJSONString(jsonString){
+                        jsonString = jsonString.replace(/\"/g,'"');
+                        return JSON.parse(jsonString);
+                    };
+
+                    function findEncName(name) {
+                        var arrayDescrtions = parseJSONString("${stepDescriptions.collect{enc(attr: it.name)} as JSON}");
+                        return arrayDescrtions.find(function(ad){return ad === name})
+                    };
+
+                    function parseModelToJS(jsonString) {
+                         var jsonObject=parseJSONString(jsonString);
+                         // jsonObject.forEach(function(item){item.encName = findEncName(item.name)});
+                         return jsonObject
+                    };
+
+                    var nodeStepDescriptionsArray = parseModelToJS("${nodeStepDescriptions as JSON}");
+                    var stepDescriptionsArray = parseModelToJS("${stepDescriptions as JSON}");
+                    var pluginsDescriptions = nodeStepDescriptionsArray.concat(stepDescriptionsArray);
+
+                    var filter = new StepPluginsFilter({stepDescriptions:pluginsDescriptions});
+
+                    ko.applyBindings(filter,jQuery('#addStep_${enc(js:rkey)}')[0]);
+                });
+    </g:javascript>
 </div>
 
 <div class="panel-footer">
